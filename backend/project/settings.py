@@ -93,6 +93,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'accounts',
+    
 ]
 
 MIDDLEWARE = [
@@ -196,6 +197,17 @@ if RUNNING_TESTS and _env_bool('USE_SQLITE_FOR_TESTS', DEBUG):
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': str(BASE_DIR / 'test_db.sqlite3'),
+        }
+    }
+
+# Local developer convenience: if running with DEBUG and a local sqlite file exists,
+# prefer it so developers can run the project without a local Postgres server.
+local_sqlite_path = BASE_DIR / 'db.sqlite3'
+if DEBUG and local_sqlite_path.exists():
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': str(local_sqlite_path),
         }
     }
 

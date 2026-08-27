@@ -1,7 +1,9 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
 import { FaChevronDown, FaSearch } from 'react-icons/fa';
-
+import WhatsAppSendPage from "./pages/WhatsAppSendPage";
+import WhatsAppDashboard from "./dashboard/WhatsAppDashboard";
+import AdminWhatsAppDashboard from "./components/AdminWhatsAppDashboard";
 const landingMenus = [
   {
     key: 'products',
@@ -254,6 +256,8 @@ function App() {
                     <span>{menu.label}</span>
                     <FaChevronDown />
                   </button>
+                  
+
 
                   <div className={`bhisha-dropdown ${openMenu === menu.key ? 'open' : ''}`}>
                     {menu.items.map((item) => (
@@ -306,7 +310,10 @@ function App() {
         <Route path="/dashboard/recharge" element={privateRoute('Recharge & Payments', <DashboardLayout page="recharge" />)} />
         <Route path="/dashboard/contact-support" element={privateRoute('Contact Support', <DashboardLayout page="contactSupport" />)} />
         <Route path="/dashboard/sender-id-request" element={privateRoute('Sender ID Request', <SenderIdRequestPage />)} />
-
+        <Route path="/whatsapp/send" element={privateRoute('WhatsApp Send', <WhatsAppSendPage />)} />
+        <Route path="/whatsapp/dashboard" element={privateRoute('WhatsApp Dashboard', <WhatsAppDashboard />)} />
+        <Route path="/admin/whatsapp/dashboard" element={<AdminWhatsAppDashboard />}
+/>
         {/* SMS Routes */}
         <Route path="/sms/send" element={adminRoute('SMS Send', <SMSSend />)} />
         <Route path="/sms/free-trial" element={privateRoute('Free Trial SMS', <FreeTrialSMS />)} />
@@ -316,6 +323,7 @@ function App() {
           path="/admin/sms/credentials"
           element={supportRoute('Support SMS Credentials', <AdminSMSCredentials />)}
         />
+        
         <Route path="/admin/notifications" element={supportRoute('Support Notifications', <AdminNotifications />)} />
         <Route path="/broadcast/email-validation" element={privateRoute('Email Validation', <EmailValidation />)} />
         <Route path="/reports" element={privateRoute('Reports', <Reports />)} />
@@ -325,7 +333,8 @@ function App() {
         <Route path="/privacy-notice" element={wrapModule('Privacy Notice', <PrivacyNotice />)} />
         <Route path="/terms-of-use" element={wrapModule('Terms of Use', <TermsOfUse />)} />
         <Route path="/bhisha-for-startups" element={wrapModule('Bhisha for Startups', <BhishaForStartups />)} />
-        
+         
+
         <Route path="/" element={wrapModule('Home', <MainPage />)} />
       </Routes>
     </BrowserRouter>
