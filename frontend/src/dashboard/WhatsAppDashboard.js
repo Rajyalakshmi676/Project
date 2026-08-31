@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaWhatsapp,
   FaRobot,
@@ -27,6 +28,7 @@ import {
 import API from "../api";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
 
   const [sidebarCollapsed, setSidebarCollapsed] =
   useState(false);
@@ -1538,12 +1540,20 @@ const Dashboard = () => {
             </button>
 
             
-            <button className="nav-button" title="Templates">
+            <button
+              className="nav-button"
+              title="Templates"
+              onClick={() => navigate("/whatsapp/templates")}
+            >
               <FaFileAlt />
               <span>Templates</span>
             </button>
 
-            <button className="nav-button" title="Campaigns">
+            <button
+              className="nav-button"
+              title="Campaigns"
+              onClick={() => navigate("/whatsapp/campaigns")}
+            >
               <FaBullhorn />
               <span>Campaigns</span>
             </button>
