@@ -93,9 +93,16 @@ export default function Login() {
       localStorage.setItem('access', res.data.access);
       localStorage.setItem('refresh', res.data.refresh);
       localStorage.setItem('authToken', res.data.access);
+      localStorage.setItem('isAdmin', res.data.is_admin);
       
       console.log("LOGIN RESPONSE:", res.data);
       console.log("ADMIN LOGIN SUCCESS");
+
+      if (res.data.is_admin) {
+  nav("/dashboard", { replace: true });
+} else {
+  nav("/dashboard", { replace: true });
+}
 
       // Use window.location to force refresh and update isLoggedIn state
       //window.location.reload();

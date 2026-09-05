@@ -1529,16 +1529,14 @@ const Dashboard = () => {
               </button>
             </div>
 
-            <button className="nav-button" title="Inbox">
+            <button
+              className="nav-button"
+              title="Inbox"
+              onClick={() => navigate("/whatsapp/inbox")}
+            >
               <FaInbox />
-
               <span>Inbox</span>
-
-              <b className="inbox-badge">
-                {dashboard.inboxCount}
-              </b>
             </button>
-
             
             <button
               className="nav-button"

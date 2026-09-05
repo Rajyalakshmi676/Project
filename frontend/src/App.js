@@ -94,12 +94,15 @@ const Reports = lazy(() => import('./components/Reports'));
 const ContactSupportPage = lazy(() => import('./dashboard/ContactSupportPage'));
 const SenderIdRequestPage = lazy(() => import('./dashboard/SenderIdRequestPage'));
 const DashboardLayout = lazy(() => import('./dashboard/Layout'));
+const Inbox = lazy(() => import('./components/Inbox'));
 const Templates = lazy(() => import('./components/Templates'));
 const Campaigns = lazy(() => import('./components/Campaigns'));
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(
+  localStorage.getItem('isAdmin') === 'true'
+);
   const [isSupportUser, setIsSupportUser] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -299,7 +302,7 @@ function App() {
           path="/verify-otp"
           element={wrapModule('Verify OTP', isLoggedIn ? <Navigate to={isAdmin ? "/admin/whatsapp/dashboard" : "/dashboard"} replace /> : <VerifyOtp />)} 
         />
-        <Route path="/login" element={wrapModule('Login', isLoggedIn ? <Navigate to={isAdmin ? "/admin/whatsapp/dashboard" : "/dashboard"} replace /> : <Login />)} />
+        <Route path="/login" element={wrapModule('Login', isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login />)} />
         <Route path="/forgot-password" element={wrapModule('Forgot Password', <ForgotPassword />)} />
         <Route path="/reset-password" element={wrapModule('Reset Password', <ResetPassword />)} />
         <Route path="/profile" element={privateRoute('Profile', <UserProfile />)} />
@@ -311,10 +314,11 @@ function App() {
         <Route path="/dashboard/sender-id-request" element={privateRoute('Sender ID Request', <SenderIdRequestPage />)} />
         <Route path="/whatsapp/send" element={privateRoute('WhatsApp Send', <WhatsAppSendPage />)} />
         <Route path="/whatsapp/dashboard" element={privateRoute('WhatsApp Dashboard', <WhatsAppDashboard />)} />
+        <Route path="/whatsapp/inbox" element={privateRoute('WhatsApp Inbox', <Inbox />)} />
         <Route path="/whatsapp/templates" element={privateRoute('WhatsApp Templates', <Templates />)} />
         <Route path="/whatsapp/campaigns" element={privateRoute('WhatsApp Campaigns', <Campaigns />)} />
         <Route path="/admin/whatsapp/dashboard" element={privateRoute('Admin WhatsApp Dashboard', <AdminWhatsAppDashboard />)} />
-
+        
         {/* SMS Routes */}
         <Route path="/sms/send" element={adminRoute('SMS Send', <SMSSend />)} />
         <Route path="/sms/free-trial" element={privateRoute('Free Trial SMS', <FreeTrialSMS />)} />
