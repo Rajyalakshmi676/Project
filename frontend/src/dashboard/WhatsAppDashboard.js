@@ -112,13 +112,6 @@ const Dashboard = () => {
       { day: "May 27", value: 860 },
     ],
 
-    leadSources: {
-      whatsapp: 62,
-      website: 22,
-      facebook: 10,
-      others: 6,
-    },
-
     campaigns: [
       {
         name: "Website Enquiry",
@@ -1565,7 +1558,11 @@ const Dashboard = () => {
               <span>Analytics</span>
             </button>
 
-            <button className="nav-button" title="History">
+            <button
+              className="nav-button"
+              title="History"
+              onClick={() => navigate("/whatsapp/history")}
+            >
               <FaHistory />
               <span>History</span>
             </button>
@@ -1822,22 +1819,7 @@ const Dashboard = () => {
 
             <div className="bottom-section">
 
-              {/* LEAD SOURCE */}
-
-              <div className="card">
-
-                <div className="card-header">
-
-                  <h2>
-                    Lead Source
-                  </h2>
-
-                </div>
-
-                <LeadSourceChart />
-
-              </div>
-
+              
               {/* TOP CAMPAIGNS */}
 
               <div className="card">

@@ -149,10 +149,7 @@ function Analytics() {
               <p>Campaign Comparison</p>
 
               <button
-                onClick={() =>
-                  setIsCampaignDetailsOpen(!isCampaignDetailsOpen)
-                }
-              >
+                onClick={() => setIsCampaignDetailsOpen(!isCampaignDetailsOpen)}>
                 Campaign Details
               </button>
 
