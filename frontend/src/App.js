@@ -97,6 +97,9 @@ const DashboardLayout = lazy(() => import('./dashboard/Layout'));
 const Inbox = lazy(() => import('./components/Inbox'));
 const Templates = lazy(() => import('./components/Templates'));
 const Campaigns = lazy(() => import('./components/Campaigns'));
+const Analytics = lazy(() => import('./components/Analytics'));
+const History = lazy(() => import('./components/History'));
+
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -317,6 +320,8 @@ function App() {
         <Route path="/whatsapp/inbox" element={privateRoute('WhatsApp Inbox', <Inbox />)} />
         <Route path="/whatsapp/templates" element={privateRoute('WhatsApp Templates', <Templates />)} />
         <Route path="/whatsapp/campaigns" element={privateRoute('WhatsApp Campaigns', <Campaigns />)} />
+        <Route path="/whatsapp/Analytics" element={privateRoute('WhatsApp Analytics', <Analytics />)} />
+        <Route path="/whatsapp/History" element={privateRoute('WhatsApp History', <History />)} />
         <Route path="/admin/whatsapp/dashboard" element={privateRoute('Admin WhatsApp Dashboard', <AdminWhatsAppDashboard />)} />
         
         {/* SMS Routes */}

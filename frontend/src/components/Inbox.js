@@ -495,45 +495,7 @@ function Inbox() {
               onClick={(event) => event.stopPropagation()}
             >
 
-              <div className="filter-panel">
-
-                <div
-                  className={
-                    filterSelected.channel
-                      ? "filter-row selected"
-                      : "filter-row"
-                  }
-                >
-                  <Checkbox
-                    checked={filterSelected.channel}
-                    onClick={(event) =>
-                      handleFilterOptionClick("channel", event)
-                    }
-                  />
-
-                  <span
-                    className="filter-label"
-                    onClick={(event) =>
-                      handleFilterOptionClick("channel", event)
-                    }
-                  >
-                    Channel
-                  </span>
-
-                  <span
-                    className="row-arrow"
-                    onClick={(event) =>
-                      handleFilterArrowClick("channel", event)
-                    }
-                  >
-                    {activeFilterOption === "channel" ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronRight />
-                    )}
-                  </span>
-                </div>
-
+              <div className="filter-panel">                 
                 <div
                   className={
                     filterSelected.chatType
@@ -646,35 +608,6 @@ function Inbox() {
                 </div>
 
               </div>
-
-              {activeFilterOption === "channel" && (
-                <div className="sub-panel">
-
-                  <div
-                    className={
-                      filterSubSelected.whatsapp
-                        ? "sub-row selected"
-                        : "sub-row"
-                    }
-                    onClick={(event) =>
-                      handleFilterSubOptionClick("whatsapp", event)
-                    }
-                  >
-                    <Checkbox
-                      checked={filterSubSelected.whatsapp}
-                      onClick={(event) =>
-                        handleFilterSubOptionClick("whatsapp", event)
-                      }
-                    />
-
-                    <FaWhatsapp className="sub-icon" />
-
-                    <span>WhatsApp</span>
-                  </div>
-
-                </div>
-              )}
-
               {activeFilterOption === "chatType" && (
                 <div className="sub-panel">
 
@@ -777,67 +710,19 @@ function Inbox() {
               )}
 
               {activeFilterOption === "labels" && (
-                <div className="sub-panel">
-
-                  <div
-                    className={
-                      filterSubSelected.important
-                        ? "sub-row selected"
-                        : "sub-row"
-                    }
-                    onClick={(event) =>
-                      handleFilterSubOptionClick("important", event)
-                    }
-                  >
-                    <Checkbox
-                      checked={filterSubSelected.important}
-                      onClick={(event) =>
-                        handleFilterSubOptionClick("important", event)
-                      }
-                    />
-                    <span>Important</span>
-                  </div>
-
-                  <div
-                    className={
-                      filterSubSelected.customer
-                        ? "sub-row selected"
-                        : "sub-row"
-                    }
-                    onClick={(event) =>
-                      handleFilterSubOptionClick("customer", event)
-                    }
-                  >
-                    <Checkbox
-                      checked={filterSubSelected.customer}
-                      onClick={(event) =>
-                        handleFilterSubOptionClick("customer", event)
-                      }
-                    />
-                    <span>Customer</span>
-                  </div>
-
-                  <div
-                    className={
-                      filterSubSelected.lead
-                        ? "sub-row selected"
-                        : "sub-row"
-                    }
-                    onClick={(event) =>
-                      handleFilterSubOptionClick("lead", event)
-                    }
-                  >
-                    <Checkbox
-                      checked={filterSubSelected.lead}
-                      onClick={(event) =>
-                        handleFilterSubOptionClick("lead", event)
-                      }
-                    />
-                    <span>Lead</span>
-                  </div>
-
-                </div>
-              )}
+            <div
+              ref={openPanelRef}
+              className="search-container"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search"
+                autoFocus
+              />
+            </div>
+          )}
 
               {activeFilterOption === "countries" && (
                 <div className="sub-panel">
@@ -928,44 +813,6 @@ function Inbox() {
             >
 
               <div className="new-panel">
-
-                <div
-                  className={
-                    newSelected.channelName
-                      ? "new-row selected"
-                      : "new-row"
-                  }
-                >
-                  <Checkbox
-                    checked={newSelected.channelName}
-                    onClick={(event) =>
-                      handleNewOptionClick("channelName", event)
-                    }
-                  />
-
-                  <span
-                    className="new-label"
-                    onClick={(event) =>
-                      handleNewOptionClick("channelName", event)
-                    }
-                  >
-                    Channel Name
-                  </span>
-
-                  <span
-                    className="new-arrow"
-                    onClick={(event) =>
-                      handleNewArrowClick("channelName", event)
-                    }
-                  >
-                    {activeNewOption === "channelName" ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronRight />
-                    )}
-                  </span>
-                </div>
-
                 <div
                   className={
                     newSelected.templateName
@@ -1004,34 +851,6 @@ function Inbox() {
                 </div>
 
               </div>
-
-              {activeNewOption === "channelName" && (
-                <div className="new-sub-panel">
-
-                  <div
-                    className={
-                      newSubSelected.whatsapp
-                        ? "sub-row selected"
-                        : "sub-row"
-                    }
-                    onClick={(event) =>
-                      handleNewSubOptionClick("whatsapp", event)
-                    }
-                  >
-                    <Checkbox
-                      checked={newSubSelected.whatsapp}
-                      onClick={(event) =>
-                        handleNewSubOptionClick("whatsapp", event)
-                      }
-                    />
-
-                    <FaWhatsapp className="sub-icon" />
-
-                    <span>WhatsApp</span>
-                  </div>
-
-                </div>
-              )}
 
               {activeNewOption === "templateName" && (
                 <div className="new-sub-panel">
