@@ -229,7 +229,7 @@ function App() {
               Sign up
             </Link>
             <Link to="/login" className="bhisha-utility-login" onClick={closeMenu}>
-              Login
+              Signin
             </Link>
           </div>
         </div>

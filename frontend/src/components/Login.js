@@ -94,6 +94,7 @@ export default function Login() {
       localStorage.setItem('refresh', res.data.refresh);
       localStorage.setItem('authToken', res.data.access);
       localStorage.setItem('isAdmin', res.data.is_admin);
+      window.dispatchEvent(new Event('auth-changed'));
       
       console.log("LOGIN RESPONSE:", res.data);
       console.log("ADMIN LOGIN SUCCESS");
