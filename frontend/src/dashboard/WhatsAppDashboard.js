@@ -1556,7 +1556,11 @@ const Dashboard = () => {
               <span>Campaigns</span>
             </button>
 
-            <button className="nav-button" title="Analytics">
+            <button 
+              className="nav-button"
+              title="Analytics"
+              onClick={() => navigate("/whatsapp/analytics")}
+            >
               <FaChartLine />
               <span>Analytics</span>
             </button>
