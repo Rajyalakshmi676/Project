@@ -24,6 +24,7 @@ from .views import (
     UserAPIKeyDetailView,
     APIEmailValidationView,
     EmailValidationStatusView,
+    EmailValidationResultsListView,
     EmailValidationControlView,
     APIEmailValidationStatusView,
     APIEmailValidationControlView,
@@ -47,6 +48,10 @@ from .views import (
     EmployeeVerifyDualOTPView,
     EmployeeLoginView,
     AdminEmployeeListView,
+)
+from .download_views import (
+    EmailValidationDownloadView,
+    EmailValidationReportDownloadView,
 )
 
 urlpatterns = [
@@ -93,6 +98,9 @@ urlpatterns = [
     path('email-validation/history/', ValidationHistoryListView.as_view(), name='email-validation-history'),
     path('email-validation/ip-whitelist-requests/', EmailValidationIPWhitelistRequestView.as_view(), name='email-validation-ip-whitelist-requests'),
     path('email-validation/history/<str:request_id>/status/', EmailValidationStatusView.as_view(), name='email-validation-status'),
+    path('email-validation/history/<str:request_id>/results/', EmailValidationResultsListView.as_view(), name='email-validation-results'),
+    path('email-validation/history/<str:request_id>/download/', EmailValidationDownloadView.as_view(), name='email-validation-download'),
+    path('email-validation/reports/download/', EmailValidationReportDownloadView.as_view(), name='email-validation-report-download'),
     path('email-validation/history/<str:request_id>/control/', EmailValidationControlView.as_view(), name='email-validation-control'),
     path('email-validation/send-deliverable-mails/', SendDeliverableEmailsView.as_view(), name='email-validation-send-deliverable-mails'),
     path('email-validation/api-keys/', UserAPIKeyListCreateView.as_view(), name='email-validation-api-keys'),

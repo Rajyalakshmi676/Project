@@ -22,6 +22,17 @@ def generate_email_validation_dlr_unique_id():
     return uuid.uuid4().hex[:8].upper()
 
 
+def generate_email_validation_request_id():
+    """Unique request_id generated at INSERT time.
+
+    Generating the id as the model field default avoids the concurrent-insert
+    race where two histories were both created with the old empty-string
+    default and collided on the unique constraint before a later UPDATE could
+    assign the real id.
+    """
+    return uuid.uuid4().hex
+
+
 class User(AbstractUser):
     SENDER_ID_TYPE_CHOICES = [
         ('numeric', 'Numeric'),
@@ -42,6 +53,13 @@ class User(AbstractUser):
     pending_admin_promotion = models.BooleanField(default=False, help_text="User has pending admin promotion that requires email confirmation")
     admin_promotion_token = models.CharField(max_length=100, blank=True, null=True, unique=True, help_text="Unique token for admin promotion confirmation")
     admin_promotion_requested_at = models.DateTimeField(blank=True, null=True)
+
+    # Two-factor authentication (email OTP on every login when enabled)
+    two_factor_enabled = models.BooleanField(default=False, help_text="Require OTP verification on every login")
+
+    # Login lockout after repeated wrong password attempts
+    failed_login_attempts = models.PositiveIntegerField(default=0)
+    login_locked_until = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return self.email or self.username
@@ -396,7 +414,7 @@ class EmailValidationHistory(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='email_validations')
     api_key = models.ForeignKey(UserAPIKey, on_delete=models.SET_NULL, null=True, blank=True, related_name='validations')
-    request_id = models.CharField(max_length=80, unique=True, blank=True, default='')
+    request_id = models.CharField(max_length=80, unique=True, blank=True, default=generate_email_validation_request_id)
     dlr_unique_id = models.CharField(max_length=120, blank=True, default='UNKNOWN')
     source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default=SOURCE_DASHBOARD)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
@@ -413,9 +431,38 @@ class EmailValidationHistory(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            # Speeds up per-user history lists and date-range report downloads.
+            models.Index(fields=['user', 'created_at'], name='accounts_evh_user_created_idx'),
+            models.Index(fields=['created_at'], name='accounts_evh_created_idx'),
+        ]
 
     def __str__(self):
         return f"{self.user.email} validated {self.email_count} email(s) via {self.source}"
+
+
+class EmailValidationResult(models.Model):
+    """Stores per-email validation rows for scalable paginated report viewing."""
+    history = models.ForeignKey(EmailValidationHistory, on_delete=models.CASCADE, related_name='result_rows')
+    email = models.EmailField(max_length=320)
+    request_id = models.CharField(max_length=80, blank=True, default='', db_index=True)
+    status = models.CharField(max_length=40, blank=True, default='')
+    status_code = models.CharField(max_length=80, blank=True, default='')
+    classification = models.CharField(max_length=80, blank=True, default='')
+    valid_syntax = models.BooleanField(default=False)
+    valid_mailbox = models.BooleanField(default=False)
+    provider_message_id = models.CharField(max_length=150, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['id']
+        indexes = [
+            models.Index(fields=['history', 'id']),
+            models.Index(fields=['history', 'email']),
+        ]
+
+    def __str__(self):
+        return f"{self.history_id}:{self.email}"
 
 
 class EmailValidationIPWhitelistRequest(models.Model):

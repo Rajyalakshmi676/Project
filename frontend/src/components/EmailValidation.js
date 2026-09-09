@@ -73,6 +73,44 @@ const endpointCards = [
   },
 ];
 
+function saveBlobAsFile(blob, contentDisposition, fallbackFilename) {
+  let filename = fallbackFilename;
+  const header = String(contentDisposition || '');
+  const match = header.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+  if (match && match[1]) {
+    filename = decodeURIComponent(match[1]);
+  }
+
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+async function readBlobError(err, fallbackMessage) {
+  try {
+    const data = err?.response?.data;
+    if (data instanceof Blob) {
+      const text = await data.text();
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed?.detail) {
+          return String(parsed.detail);
+        }
+      } catch {
+        // Ignore parse failures and fall through to generic message.
+      }
+    }
+  } catch {
+    // Ignore parsing failures and return the fallback message.
+  }
+  return getProfessionalErrorMessage(err, fallbackMessage);
+}
+
 export default function EmailValidation() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,6 +119,7 @@ export default function EmailValidation() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [walletBalance, setWalletBalance] = useState('0');
   const [providerEmailBalance, setProviderEmailBalance] = useState('');
+  const [millionVerifierBalance, setMillionVerifierBalance] = useState('');
   const [providerMessageBalance, setProviderMessageBalance] = useState('');
   const [canViewSupportData, setCanViewSupportData] = useState(false);
   const [canManageValidation, setCanManageValidation] = useState(false);
@@ -121,6 +160,7 @@ export default function EmailValidation() {
   const [progressTimeline, setProgressTimeline] = useState([]);
   const [keepInBackground, setKeepInBackground] = useState(false);
   const [fileUploadReady, setFileUploadReady] = useState(false);
+  const [dlrDownloading, setDlrDownloading] = useState(false);
 
   const [apiKeys, setApiKeys] = useState([]);
   const [newApiKeyName, setNewApiKeyName] = useState('');
@@ -150,6 +190,24 @@ export default function EmailValidation() {
   const [savingAdminIpRequestId, setSavingAdminIpRequestId] = useState(null);
   const [selectedUserIpWhitelistDraft, setSelectedUserIpWhitelistDraft] = useState('');
 
+  const formatDuration = (seconds) => {
+    const value = Math.max(0, Number(seconds || 0));
+    if (!Number.isFinite(value)) {
+      return '0s';
+    }
+    if (value < 60) {
+      return `${Math.round(value)}s`;
+    }
+    const totalSeconds = Math.round(value);
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    if (hrs > 0) {
+      return `${hrs}h ${mins}m ${secs}s`;
+    }
+    return `${mins}m ${secs}s`;
+  };
+
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -157,6 +215,7 @@ export default function EmailValidation() {
         const adminUser = Boolean(profile.data?.is_staff || profile.data?.is_superuser || profile.data?.is_primary_admin);
         const supportUser = Boolean(profile.data?.can_view_support_data || profile.data?.is_employee);
         const currentProviderEmailBalance = wallet.data?.provider_email_balance;
+        const currentMillionVerifierBalance = wallet.data?.millionverifier_email_balance;
         const currentProviderMessageBalance = wallet.data?.provider_message_balance;
         const validationBalance = wallet.data?.balance;
         const providerMode = String(wallet.data?.email_validation_provider_mode || 'own_system').toLowerCase();
@@ -166,6 +225,7 @@ export default function EmailValidation() {
         setValidationProviderMode(providerMode);
         setWalletBalance(String(validationBalance ?? '0'));
         setProviderEmailBalance(currentProviderEmailBalance !== undefined && currentProviderEmailBalance !== null ? String(currentProviderEmailBalance) : '');
+        setMillionVerifierBalance(currentMillionVerifierBalance !== undefined && currentMillionVerifierBalance !== null ? String(currentMillionVerifierBalance) : '');
         setProviderMessageBalance(currentProviderMessageBalance !== undefined && currentProviderMessageBalance !== null ? String(currentProviderMessageBalance) : '');
       } catch {
         setIsAdmin(false);
@@ -184,12 +244,14 @@ export default function EmailValidation() {
     try {
       const refreshedWallet = await API.get('wallet/');
       const currentProviderEmailBalance = refreshedWallet.data?.provider_email_balance;
+      const currentMillionVerifierBalance = refreshedWallet.data?.millionverifier_email_balance;
       const currentProviderMessageBalance = refreshedWallet.data?.provider_message_balance;
       const validationBalance = refreshedWallet.data?.balance;
       const providerMode = String(refreshedWallet.data?.email_validation_provider_mode || validationProviderMode || 'own_system').toLowerCase();
       setWalletBalance(String(validationBalance ?? preferResponseBalance ?? walletBalance));
       setValidationProviderMode(providerMode);
       setProviderEmailBalance(currentProviderEmailBalance !== undefined && currentProviderEmailBalance !== null ? String(currentProviderEmailBalance) : providerEmailBalance);
+      setMillionVerifierBalance(currentMillionVerifierBalance !== undefined && currentMillionVerifierBalance !== null ? String(currentMillionVerifierBalance) : millionVerifierBalance);
       setProviderMessageBalance(currentProviderMessageBalance !== undefined && currentProviderMessageBalance !== null ? String(currentProviderMessageBalance) : providerMessageBalance);
     } catch {
       if (preferResponseBalance !== undefined && preferResponseBalance !== null) {
@@ -384,8 +446,8 @@ export default function EmailValidation() {
       completed: String(status || '').toLowerCase() === 'completed',
       delivery_time: completedAt || null,
       failure_reason: failureReason || '',
-      provider_mode: 'zerobounce',
-      provider_mode_label: 'ZeroBounce API',
+      provider_mode: 'own_system',
+      provider_mode_label: 'Standard Validation',
       summary: { ...totals, total: resultRows.length },
       results: resultRows.map((row) => ({
         email: String(row?.email || '').trim().toLowerCase(),
@@ -414,7 +476,8 @@ export default function EmailValidation() {
     setResults(effectiveResults);
     setSummary({ safe_to_send_yes: safeCount, safe_to_send_no: unsafeCount });
     setLastFileName(data?.source_file_name || history?.file_name || '');
-    setLatestRequestId(data?.request_id || history?.request_id || '');
+    const publicRequestId = data?.request_ids?.[0] || data?.request_id || history?.request_items?.[0]?.request_id || history?.request_id || '';
+    setLatestRequestId(publicRequestId);
     const modeFromPayload = String(
       data?.provider_mode
       || historySummary?.provider_mode
@@ -440,13 +503,36 @@ export default function EmailValidation() {
 
   const hydrateFromHistoryRow = (current = {}) => {
     const rs = current?.results_summary || {};
-    const progressPercent = Number(rs?.progress_percent || 0);
+    const rawProgressPercent = Number(rs?.progress_percent || 0);
     const processedCount = Number(rs?.processed_count || 0);
     const totalCount = Number(rs?.total_count || current?.email_count || 0);
-    const elapsedSeconds = Number(rs?.elapsed_seconds || 0);
+    const computedProgressFromCounts = totalCount > 0
+      ? Math.min(100, Math.round((Math.max(0, processedCount) / Math.max(1, totalCount)) * 100))
+      : 0;
+    const progressPercent = Math.max(rawProgressPercent, computedProgressFromCounts);
+    const startedAtRaw = String(rs?.started_at || '').trim();
+    const derivedElapsedSeconds = (() => {
+      if (!startedAtRaw) {
+        return 0;
+      }
+      const startedMs = new Date(startedAtRaw).getTime();
+      if (!Number.isFinite(startedMs)) {
+        return 0;
+      }
+      return Math.max(0, Math.round((Date.now() - startedMs) / 1000));
+    })();
+    const elapsedSeconds = Number(rs?.elapsed_seconds || derivedElapsedSeconds || 0);
     const etaSeconds = Number(rs?.eta_seconds || 0);
     const processingState = String(current?.processing_state || rs?.processing_state || current?.status || 'pending').toLowerCase();
     const modeFromRow = String(current?.provider_mode || rs?.provider_mode || validationProviderMode || 'own_system').toLowerCase();
+    const liveRows = Array.isArray(rs?.results) ? rs.results : [];
+    if (liveRows.length > 0) {
+      setResults(liveRows);
+    }
+    setSummary({
+      safe_to_send_yes: Number(rs?.safe_count || 0),
+      safe_to_send_no: Number(rs?.unsafe_count || 0),
+    });
 
     if (current?.dlr_report && typeof current.dlr_report === 'object') {
       setDlrReport(current.dlr_report);
@@ -463,6 +549,7 @@ export default function EmailValidation() {
 
     setActiveRequestMeta({
       requestId: current?.request_id || '',
+      batchId: current?.batch_id || current?.request_id || '',
       status: String(current?.status || 'pending').toLowerCase(),
       processingState,
       progressPercent,
@@ -513,48 +600,41 @@ export default function EmailValidation() {
     return hydrateFromHistoryRow(response.data || {});
   };
 
-  const downloadDlrCsv = () => {
-    if (!dlrReport || !Array.isArray(dlrReport.results) || dlrReport.results.length === 0) {
-      setError('No DLR rows available to download.');
+  const downloadDlrCsv = async () => {
+    const batchRequestId = String(
+      activeRequestMeta?.batchId
+      || activeRequestMeta?.requestId
+      || dlrReport?.request_id
+      || latestRequestId
+      || ''
+    ).trim();
+    if (!batchRequestId) {
+      setError('No request id is available for downloading the validation report.');
       return;
     }
 
-    const rows = dlrReport.results;
-    const header = ['email', 'status', 'status_code', 'classification', 'valid_mailbox', 'valid_syntax'];
-    const escapeCell = (value) => {
-      const raw = String(value ?? '');
-      if (raw.includes(',') || raw.includes('"') || raw.includes('\n')) {
-        return `"${raw.replace(/"/g, '""')}"`;
-      }
-      return raw;
-    };
-
-    const lines = [header.join(',')];
-    for (const row of rows) {
-      lines.push([
-        escapeCell(row?.email || ''),
-        escapeCell(row?.status || row?.classification || row?.status_code || ''),
-        escapeCell(row?.status_code || row?.statusCode || ''),
-        escapeCell(row?.classification || ''),
-        escapeCell(row?.valid_mailbox ?? row?.validMailbox ?? ''),
-        escapeCell(row?.valid_syntax ?? row?.validSyntax ?? ''),
-      ].join(','));
+    setError('');
+    setDlrDownloading(true);
+    try {
+      const response = await API.get(`email-validation/history/${batchRequestId}/download/`, {
+        params: { export_format: 'csv' },
+        responseType: 'blob',
+        timeout: 300000,
+      });
+      saveBlobAsFile(
+        response.data,
+        response.headers?.['content-disposition'],
+        `mail-validation-${batchRequestId}.csv`
+      );
+    } catch (err) {
+      setError(await readBlobError(err, 'Could not download DLR CSV.'));
+    } finally {
+      setDlrDownloading(false);
     }
-
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const requestLabel = String(latestRequestId || dlrReport?.request_id || 'dlr').trim();
-    link.href = url;
-    link.setAttribute('download', `email-validation-dlr-${requestLabel}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
   };
 
   const runRequestAction = async (action) => {
-    const requestId = activeRequestMeta?.requestId || latestRequestId;
+    const requestId = activeRequestMeta?.batchId || activeRequestMeta?.requestId || latestRequestId;
     if (!requestId) {
       setError('No active request found.');
       return;
@@ -656,7 +736,7 @@ export default function EmailValidation() {
   };
 
   useEffect(() => {
-    if (!activeRequestMeta?.requestId || keepInBackground) {
+    if (!activeRequestMeta?.requestId) {
       return undefined;
     }
 
@@ -684,7 +764,7 @@ export default function EmailValidation() {
         pollIntervalRef.current = null;
       }
     };
-  }, [activeRequestMeta?.requestId, keepInBackground]);
+  }, [activeRequestMeta?.requestId]);
 
   useEffect(() => {
     const persistedRequestId = localStorage.getItem('emailValidationActiveRequestId');
@@ -702,10 +782,6 @@ export default function EmailValidation() {
 
     if (mode === 'file') {
       const requestId = activeRequestMeta?.requestId || latestRequestId;
-      if (!sourceFile) {
-        setError('Please upload a file first.');
-        return;
-      }
       if (!requestId || !fileUploadReady) {
         setError('Please click Proceed Upload first.');
         return;
@@ -764,7 +840,7 @@ export default function EmailValidation() {
       response = await API.post('email-validation/validate/', payload, { timeout: 900000 });
 
       const isQueuedFileValidation = mode === 'file' && String(response?.status || '').toLowerCase() === '202';
-      const pendingRequestId = response.data?.request_id || response.data?.history?.request_id || '';
+      const pendingRequestId = response.data?.request_id || response.data?.batch_id || response.data?.history?.request_id || '';
 
       if (isQueuedFileValidation || String(response.data?.status || '').toLowerCase() === 'pending') {
         setStatusMessage('File accepted. Validation is running in the background...');
@@ -880,12 +956,12 @@ export default function EmailValidation() {
           if (total > 0) {
             const percent = Math.min(100, Math.round((loaded / total) * 100));
             setProgressPercent(percent);
-            setStatusMessage(percent < 100 ? `Uploading file... ${percent}%` : 'Upload complete. Extracting file on server...');
+            setStatusMessage(percent < 100 ? `Uploading file... ${percent}%` : 'Upload complete. Queuing file for background extraction...');
           }
         },
       });
 
-      const requestId = String(response?.data?.request_id || '');
+      const requestId = String(response?.data?.request_id || response?.data?.batch_id || '');
       if (!requestId) {
         throw new Error('Upload succeeded but request ID is missing.');
       }
@@ -896,8 +972,8 @@ export default function EmailValidation() {
       setFileUploadReady(true);
       setProgressStage('idle');
       setProgressPercent(100);
-      setStatusMessage('File uploaded and extracted. Click Start Mail Validation.');
-      setInfo('File uploaded and extracted successfully. Click Start Mail Validation to begin parallel processing.');
+      setStatusMessage('File upload completed. Click Start Mail Validation.');
+      setInfo('File upload completed successfully. Mail extraction and validation will run in background after Start.');
       await refreshWalletBalance(response.data?.wallet_balance);
     } catch (err) {
       setError(getProfessionalErrorMessage(err, 'File upload/extraction failed.'));
@@ -1117,17 +1193,15 @@ export default function EmailValidation() {
   }, [summary]);
 
   const isDeliverableResult = (row) => {
+    if (typeof row?.safe_to_send === 'boolean') {
+      return row.safe_to_send;
+    }
+
     const quality = String(row?.bhisha_result?.quality || row?.classification || '').trim().toLowerCase();
     if (quality === 'deliverable' || quality === 'safe') {
       return true;
     }
-    return Boolean(
-      row?.validMailbox
-      && row?.validSyntax
-      && !row?.disposable
-      && !row?.roleBased
-      && !row?.risky
-    );
+    return false;
   };
 
   const deliverableEmails = useMemo(() => {
@@ -1199,120 +1273,6 @@ export default function EmailValidation() {
     }
   };
 
-  const formatLiveResult = (row) => {
-    const toBool = (value) => {
-      if (typeof value === 'boolean') {
-        return value;
-      }
-      if (typeof value === 'number') {
-        return value !== 0;
-      }
-      const normalized = String(value || '').trim().toLowerCase();
-      if (['true', '1', 'yes', 'y'].includes(normalized)) {
-        return true;
-      }
-      if (['false', '0', 'no', 'n'].includes(normalized)) {
-        return false;
-      }
-      return false;
-    };
-
-    const profile = row?.bhisha_result?.result_profile;
-    if (profile) {
-      return profile;
-    }
-
-    const bhisha = row?.bhisha_result || {};
-    const validSyntax = toBool(row?.bhisha_result?.valid_syntax ?? row?.validSyntax);
-    const disposable = toBool(row?.bhisha_result?.disposable ?? row?.disposable);
-    const roleBased = toBool(row?.bhisha_result?.role_based ?? row?.roleBased);
-    const validInbox = Boolean(row?.validMailbox && validSyntax && !disposable && !roleBased);
-    const riskFactors = String(bhisha.risk_factors || 'None Detected').trim() || 'None Detected';
-
-    return [
-      `Valid Inbox:    ${String(validInbox)}`,
-      `Valid Syntax:   ${String(validSyntax)}`,
-      `Risk Factors:   ${riskFactors}`,
-    ].join('\n');
-  };
-
-  const formatBoolValue = (value) => {
-    if (value === true) {
-      return 'Yes';
-    }
-    return 'No';
-  };
-
-  const getBoolStyles = (value) => {
-    if (value === true) {
-      return { color: '#166534', background: '#dcfce7', border: '#86efac' };
-    }
-    return { color: '#991b1b', background: '#fee2e2', border: '#fca5a5' };
-  };
-
-  const factorCards = (row) => {
-    const toBool = (value) => {
-      if (typeof value === 'boolean') {
-        return value;
-      }
-      if (typeof value === 'number') {
-        return value !== 0;
-      }
-      const normalized = String(value || '').trim().toLowerCase();
-      if (['true', '1', 'yes', 'y'].includes(normalized)) {
-        return true;
-      }
-      if (['false', '0', 'no', 'n'].includes(normalized)) {
-        return false;
-      }
-      return false;
-    };
-
-    const bhisha = row?.bhisha_result || {};
-    const factors = [
-      { label: 'Valid Inbox', type: 'bool', value: toBool(bhisha.valid_inbox ?? row?.validMailbox) },
-      { label: 'Valid Syntax', type: 'bool', value: toBool(bhisha.valid_syntax ?? row?.validSyntax) },
-    ];
-
-    return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginTop: '10px' }}>
-        {factors.map((factor) => {
-          const style = factor.type === 'bool'
-            ? getBoolStyles(factor.value)
-            : { color: '#1f2937', background: '#eef2ff', border: '#c7d2fe' };
-
-          const displayValue = factor.type === 'bool'
-            ? formatBoolValue(factor.value)
-            : String(factor.value);
-
-          return (
-            <div key={`${row?.email || 'factor'}-${factor.label}`} style={{ border: `1px solid ${style.border}`, borderRadius: '8px', padding: '8px', background: style.background }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>{factor.label}</div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: style.color }}>{displayValue}</div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const getRowProviderMode = (row) => {
-    return String(
-      row?.provider_mode
-      || row?.bhisha_result?.provider_mode
-      || validationProviderMode
-      || 'own_system'
-    ).toLowerCase();
-  };
-
-  const getRowProviderLabel = (row) => {
-    const explicit = String(row?.provider_mode_label || row?.bhisha_result?.provider_mode_label || '').trim();
-    if (explicit) {
-      return explicit;
-    }
-    return getRowProviderMode(row) === 'zerobounce' ? 'ZeroBounce API' : 'Own System (SMTP + DNS)';
-  };
-
   const getOwnSystemMailStatus = (row) => {
     const bhisha = row?.bhisha_result || {};
     const validSyntax = Boolean(bhisha.valid_syntax ?? row?.validSyntax);
@@ -1360,6 +1320,40 @@ export default function EmailValidation() {
         Dashboard + API validation, key management, source history, and admin credits.
       </p>
 
+      {activeRequestMeta?.requestId && !['completed', 'failed', 'cancelled', 'stopped'].includes(String(activeRequestMeta.processingState || '').toLowerCase()) && (
+        <div style={{
+          marginBottom: '16px',
+          border: '1px solid #bbf7d0',
+          background: '#f0fdf4',
+          borderRadius: '10px',
+          padding: '12px',
+          position: 'sticky',
+          top: '10px',
+          zIndex: 5,
+        }}>
+          <div style={{ fontSize: '13px', fontWeight: 800, color: '#14532d', marginBottom: '6px' }}>
+            Active Mail Validation: {activeRequestMeta.processingState || activeRequestMeta.status}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '12px', color: '#14532d', marginBottom: '8px' }}>
+            <span><strong>Request:</strong> {activeRequestMeta.requestId}</span>
+            <span><strong>Progress:</strong> {activeRequestMeta.progressPercent || 0}%</span>
+            <span><strong>Processed:</strong> {activeRequestMeta.processedCount || 0}/{activeRequestMeta.totalCount || 0}</span>
+            <span><strong>Elapsed:</strong> {formatDuration(activeRequestMeta.elapsedSeconds || 0)}</span>
+            <span><strong>ETA:</strong> {formatDuration(activeRequestMeta.etaSeconds || 0)}</span>
+          </div>
+          <div style={{ height: '8px', width: '100%', background: '#dcfce7', borderRadius: '999px', overflow: 'hidden' }}>
+            <div
+              style={{
+                width: `${Math.max(0, Math.min(100, Number(activeRequestMeta.progressPercent || 0)))}%`,
+                height: '100%',
+                background: '#16a34a',
+                transition: 'width 0.3s ease',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
         <button onClick={() => setActiveTab('validate')} style={tabButtonStyle(activeTab === 'validate')}>
           <FaEnvelopeOpenText /> Validate
@@ -1401,6 +1395,12 @@ export default function EmailValidation() {
           <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '12px' }}>
             <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: 700 }}>ZeroBounce Provider Balance</div>
             <div style={{ color: '#0f766e', fontSize: '24px', fontWeight: 800 }}>{providerEmailBalance || '-'}</div>
+          </div>
+        )}
+        {isAdmin && (
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '12px' }}>
+            <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: 700 }}>MillionVerifier Provider Balance</div>
+            <div style={{ color: '#0f766e', fontSize: '24px', fontWeight: 800 }}>{millionVerifierBalance || '-'}</div>
           </div>
         )}
         {isAdmin && (
@@ -1520,7 +1520,7 @@ export default function EmailValidation() {
                     {loading ? 'Uploading...' : 'Proceed Upload'}
                   </button>
                   <div style={{ fontSize: '12px', color: '#334155', alignSelf: 'center' }}>
-                    {fileUploadReady ? 'Upload complete. You can start mail validation now.' : 'Proceed uploads and extracts the file on server.'}
+                    {fileUploadReady ? 'Upload complete. You can start mail validation now.' : 'Proceed uploads the file and queues extraction in background.'}
                   </div>
                 </div>
               </div>
@@ -1559,9 +1559,14 @@ export default function EmailValidation() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '12px', color: '#1f2937', marginBottom: '8px' }}>
                   <span><strong>Progress:</strong> {activeRequestMeta.progressPercent || 0}%</span>
                   <span><strong>Processed:</strong> {activeRequestMeta.processedCount || 0}/{activeRequestMeta.totalCount || 0}</span>
-                  <span><strong>Elapsed:</strong> {activeRequestMeta.elapsedSeconds || 0}s</span>
-                  <span><strong>ETA:</strong> {activeRequestMeta.etaSeconds || 0}s</span>
+                  <span><strong>Elapsed:</strong> {formatDuration(activeRequestMeta.elapsedSeconds || 0)}</span>
+                  <span><strong>ETA:</strong> {formatDuration(activeRequestMeta.etaSeconds || 0)}</span>
                 </div>
+                {Boolean((activeRequestMeta.totalCount || 0) > 0 && (results.length || 0) < (activeRequestMeta.processedCount || 0)) && (
+                  <div style={{ marginBottom: '8px', fontSize: '11px', color: '#1e3a8a' }}>
+                    Showing live preview of completed validations while processing continues.
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', alignItems: 'end', gap: '2px', height: '36px', marginBottom: '8px' }}>
                   {(progressTimeline.length ? progressTimeline : [{ value: activeRequestMeta.progressPercent || 0 }]).map((point, index) => (
@@ -1620,9 +1625,10 @@ export default function EmailValidation() {
                 <button
                   type="button"
                   onClick={downloadDlrCsv}
+                  disabled={dlrDownloading}
                   style={{ border: '1px solid #cbd5e1', background: '#ffffff', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: '#1e293b' }}
                 >
-                  Download DLR CSV
+                  {dlrDownloading ? 'Downloading...' : 'Download DLR CSV'}
                 </button>
               </div>
               <div style={{ padding: '12px 14px', display: 'grid', gap: '8px' }}>
@@ -1681,70 +1687,27 @@ export default function EmailValidation() {
               <div style={{ padding: '12px 14px', background: '#fcfcff', display: 'grid', gap: '10px' }}>
                 {results.map((row, idx) => (
                   <div key={`summary-${row.email || idx}-${idx}`} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', background: '#fff', padding: '10px' }}>
-                    {getRowProviderMode(row) === 'own_system' ? (
-                      <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px', background: '#f8fafc' }}>
-                        <div style={{ marginBottom: '6px', fontSize: '11px', color: '#334155', fontWeight: 700 }}>
-                          Provider: {getRowProviderLabel(row)}
-                        </div>
-                        <div style={{ fontSize: '13px', color: '#111827', fontWeight: 700, marginBottom: '6px' }}>
-                          Entered Mail: {String(row?.email || '').trim().toLowerCase() || '-'}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <div style={{ fontSize: '12px', color: '#475569', fontWeight: 700 }}>Validation Status</div>
-                          <div
-                            style={{
-                              border: `1px solid ${getOwnSystemMailStatusStyle(getOwnSystemMailStatus(row)).border}`,
-                              background: getOwnSystemMailStatusStyle(getOwnSystemMailStatus(row)).background,
-                              color: getOwnSystemMailStatusStyle(getOwnSystemMailStatus(row)).color,
-                              borderRadius: '999px',
-                              padding: '4px 10px',
-                              fontSize: '12px',
-                              fontWeight: 800,
-                            }}
-                          >
-                            {getOwnSystemMailStatus(row)}
-                          </div>
-                        </div>
-                
+                    <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px', background: '#f8fafc' }}>
+                      <div style={{ fontSize: '13px', color: '#111827', fontWeight: 700, marginBottom: '6px' }}>
+                        Entered Mail: {String(row?.email || '').trim().toLowerCase() || '-'}
                       </div>
-                    ) : (
-                      <>
-                        <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <div style={{ fontSize: '12px', color: '#475569', fontWeight: 700 }}>Provider</div>
-                          <div
-                            style={{
-                              border: '1px solid #cbd5e1',
-                              background: '#f8fafc',
-                              color: '#0f172a',
-                              borderRadius: '999px',
-                              padding: '4px 10px',
-                              fontSize: '12px',
-                              fontWeight: 800,
-                            }}
-                          >
-                            {getRowProviderLabel(row)}
-                          </div>
-                          <div style={{ fontSize: '12px', color: '#475569', fontWeight: 700 }}>Validation Status</div>
-                          <div
-                            style={{
-                              border: `1px solid ${getOwnSystemMailStatusStyle(getOwnSystemMailStatus(row)).border}`,
-                              background: getOwnSystemMailStatusStyle(getOwnSystemMailStatus(row)).background,
-                              color: getOwnSystemMailStatusStyle(getOwnSystemMailStatus(row)).color,
-                              borderRadius: '999px',
-                              padding: '4px 10px',
-                              fontSize: '12px',
-                              fontWeight: 800,
-                            }}
-                          >
-                            {String(row?.provider_result_status || row?.status || row?.classification || 'Result available')}
-                          </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: '12px', color: '#475569', fontWeight: 700 }}>Validation Status</div>
+                        <div
+                          style={{
+                            border: `1px solid ${getOwnSystemMailStatusStyle(getOwnSystemMailStatus(row)).border}`,
+                            background: getOwnSystemMailStatusStyle(getOwnSystemMailStatus(row)).background,
+                            color: getOwnSystemMailStatusStyle(getOwnSystemMailStatus(row)).color,
+                            borderRadius: '999px',
+                            padding: '4px 10px',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                          }}
+                        >
+                          {getOwnSystemMailStatus(row)}
                         </div>
-                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '12px', color: '#374151', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px' }}>
-                          {formatLiveResult(row)}
-                        </pre>
-                        {factorCards(row)}
-                      </>
-                    )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1974,6 +1937,7 @@ export default function EmailValidation() {
             >
               <option value="own_system">Own System (SMTP + DNS)</option>
               <option value="zerobounce">ZeroBounce API</option>
+              <option value="millionverifier">MillionVerifier API</option>
             </select>
             <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Description</label>
             <input

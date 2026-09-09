@@ -197,6 +197,12 @@ if RUNNING_TESTS and _env_bool('USE_SQLITE_FOR_TESTS', DEBUG):
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': str(BASE_DIR / 'test_db.sqlite3'),
+            # File-based test DB (not in-memory shared-cache) so concurrent
+            # live-server threads get real file locking instead of sqlite
+            # 'bad parameter or other API misuse' errors; the longer busy
+            # timeout makes concurrent writes retry instead of failing.
+            'OPTIONS': {'timeout': int(_env_text('SQLITE_TEST_TIMEOUT', 30))},
+            'TEST': {'NAME': str(BASE_DIR / 'test_db.sqlite3')},
         }
     }
 
@@ -223,6 +229,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+    {
+        'NAME': 'accounts.password_validators.StrongPasswordValidator',
     },
 ]
 
@@ -251,6 +260,12 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    # Scoped rate limits. Only endpoints that explicitly opt in via
+    # throttle_classes are affected; all other endpoints stay unthrottled.
+    'DEFAULT_THROTTLE_RATES': {
+        # Mail-validation report downloads are bandwidth heavy; cap per user.
+        'email_validation_download': _env_text('EMAIL_VALIDATION_DOWNLOAD_RATE', '120/min'),
+    },
 }
 
 SIMPLE_JWT = {
@@ -344,6 +359,9 @@ if csrf_trusted_origin_regexes_env.strip():
 #                                         +  EMAIL_PASSWORD=your_ionos_email_password
 #                                         +  EMAIL_FROM=you@yourdomain.com
 #                                         +  automatic fallback between 465/SSL and 587/TLS
+#   graph     →  EMAIL_PROVIDER=graph     +  GRAPH_TENANT_ID / GRAPH_CLIENT_ID / GRAPH_CLIENT_SECRET
+#                                         +  GRAPH_SENDER_EMAIL (defaults to PRIMARY_ADMIN_EMAIL)
+#                                         (sends via Microsoft Graph API instead of SMTP)
 #   custom    →  set EMAIL_HOST / EMAIL_PORT / EMAIL_USER / EMAIL_PASSWORD manually
 #
 # For Gmail App Password: Google Account → Security → 2-Step Verification → App passwords
@@ -420,6 +438,18 @@ else:
     DEFAULT_FROM_EMAIL = 'no-reply@example.com'
 EMAIL_SSL_CERTFILE         = _env_text('EMAIL_SSL_CERTFILE') or None
 EMAIL_SSL_KEYFILE          = _env_text('EMAIL_SSL_KEYFILE') or None
+
+# Microsoft Graph API mail sending (Entra ID app, client-credentials flow).
+# Used for signup OTP, forgot-password OTP, and reset-password mail when
+# EMAIL_PROVIDER=graph. The sending mailbox is the admin mailbox (PRIMARY_ADMIN_EMAIL)
+# unless GRAPH_SENDER_EMAIL is set explicitly.
+GRAPH_TENANT_ID = _env_text('GRAPH_TENANT_ID', '')
+GRAPH_CLIENT_ID = _env_text('GRAPH_CLIENT_ID', '')
+GRAPH_CLIENT_SECRET = _env_secret('GRAPH_CLIENT_SECRET')
+GRAPH_SENDER_EMAIL = _env_text('GRAPH_SENDER_EMAIL', '')
+
+if _email_provider == 'graph':
+    EMAIL_BACKEND = 'accounts.graph_email_backend.GraphEmailBackend'
 EMAIL_VERIFY_CERTS         = _env_bool('EMAIL_VERIFY_CERTS', True)
 EMAIL_ALLOW_INSECURE_FALLBACK = _env_bool('EMAIL_ALLOW_INSECURE_FALLBACK', True)
 EMAIL_TIMEOUT              = int(_env_text('EMAIL_TIMEOUT', 15 if not DEBUG else 20))
@@ -457,8 +487,16 @@ if not DEBUG and ('bhisha.com' in ALLOWED_HOSTS or 'www.bhisha.com' in ALLOWED_H
 # Avoid silent OTP email failures in production.
 # Fall back to console backend when SMTP credentials are missing so the
 # application can still boot; OTP emails simply won't be delivered until
-# proper SMTP credentials are configured.
-if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
+# proper SMTP credentials are configured. Graph mode uses its own
+# tenant/client credentials instead of SMTP, so it is exempt from this check.
+if _email_provider == 'graph':
+    if not (GRAPH_TENANT_ID and GRAPH_CLIENT_ID and GRAPH_CLIENT_SECRET):
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        logger.warning(
+            'GRAPH_TENANT_ID/GRAPH_CLIENT_ID/GRAPH_CLIENT_SECRET are not configured; '
+            'using console email backend until Microsoft Graph credentials are set.'
+        )
+elif not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     logger.warning(
         'SMTP credentials are not configured; using console email backend. '
@@ -469,9 +507,15 @@ if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
 # custom user model
 AUTH_USER_MODEL = 'accounts.User'
 
-# Primary admin user to auto-grant elevated access
+# Primary admin user to auto-grant elevated access.
+# Set PRIMARY_ADMIN_EMAIL in backend/.env to your real admin mailbox; it is also
+# used as the sender identity for OTP/forgot-password/reset-password mail.
 PRIMARY_ADMIN_EMAIL = os.environ.get('PRIMARY_ADMIN_EMAIL', 'noreply@smshandover.com').strip().lower()
 PRIMARY_ADMIN_ENFORCEMENT = _env_bool('PRIMARY_ADMIN_ENFORCEMENT', not DEBUG)
+
+# Graph mode sends as the admin mailbox unless EMAIL_FROM/GRAPH_SENDER_EMAIL override it.
+if _email_provider == 'graph' and not _configured_email_from:
+    DEFAULT_FROM_EMAIL = GRAPH_SENDER_EMAIL or PRIMARY_ADMIN_EMAIL
 
 # SMS provider fallback credentials (use backend/.env for confidential values)
 SMS_PROVIDER_USER = _env_text('SMS_PROVIDER_USER', '')
@@ -517,6 +561,11 @@ ZEROBOUNCE_API_KEY = _env_secret('ZEROBOUNCE_API_KEY')
 ZEROBOUNCE_VALIDATE_URL = _env_text('ZEROBOUNCE_VALIDATE_URL', 'https://api.zerobounce.net/v2/validate')
 ZEROBOUNCE_CREDITS_URL = _env_text('ZEROBOUNCE_CREDITS_URL', 'https://api.zerobounce.net/v2/getcredits')
 
+# MillionVerifier API
+MILLIONVERIFIER_API_KEY = _env_secret('MILLIONVERIFIER_API_KEY')
+MILLIONVERIFIER_VALIDATE_URL = _env_text('MILLIONVERIFIER_VALIDATE_URL', 'https://api.millionverifier.com/api/v3/')
+MILLIONVERIFIER_CREDITS_URL = _env_text('MILLIONVERIFIER_CREDITS_URL', 'https://api.millionverifier.com/api/v3/credits')
+
 # Celery + Redis async processing
 EMAIL_VALIDATION_USE_CELERY = _env_bool('EMAIL_VALIDATION_USE_CELERY', False)
 CELERY_BROKER_URL = _env_text('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
@@ -541,6 +590,13 @@ LOGGING = {
         'django.db.backends': {
             'level': _env_text('DJANGO_DB_LOG_LEVEL', 'WARNING').upper(),
             'handlers': ['console'],
+        },
+        # Surface unhandled view exceptions (500s) on the console so load
+        # tests and local dev show the real traceback instead of an empty page.
+        'django.request': {
+            'level': _env_text('DJANGO_REQUEST_LOG_LEVEL', 'ERROR').upper(),
+            'handlers': ['console'],
+            'propagate': False,
         },
     },
 }
