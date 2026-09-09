@@ -30,36 +30,36 @@ import API from "../api";
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  const [sidebarCollapsed, setSidebarCollapsed] =
-  useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  
-  // =========================================================
-  // DASHBOARD DATA
-  // =========================================================
 
   const [dashboard, setDashboard] = useState({
     totalConversations: 2506,
     automatedReplies: 1743,
     activeleads: 1128,
+    activeConversations: 1128,
     responseTime: 38,
-
     conversationChange: 18.7,
     automatedChange: 24.5,
     leadsChange: 16.3,
+    conversationsChange: 16.3,
     responseChange: 21.4,
-
     inboxCount: 193,
     notifications: 5,
-
     profileRole: "Admin",
+
+    leadSources: {
+      whatsapp: 45,
+      website: 25,
+      facebook: 20,
+      others: 10,
+    },
 
     conversations: [
       {
         name: "Sarah Johnson",
         initials: "SJ",
-        message:
-          "Hi, I'm interested in your product. Can you...",
+        message: "Hi, I'm interested in your product. Can you...",
         time: "10:24 AM",
         status: "New",
         avatar: "#f6c7c7",
@@ -67,8 +67,7 @@ const Dashboard = () => {
       {
         name: "Mike Brown",
         initials: "MB",
-        message:
-          "Thanks for the information! I'd like to book...",
+        message: "Thanks for the information! I'd like to book...",
         time: "09:58 AM",
         status: "Qualified",
         avatar: "#b9dcff",
@@ -76,8 +75,7 @@ const Dashboard = () => {
       {
         name: "Emma Wilson",
         initials: "EW",
-        message:
-          "Can you share pricing details?",
+        message: "Can you share pricing details?",
         time: "09:41 AM",
         status: "New",
         avatar: "#d7e6ff",
@@ -85,8 +83,7 @@ const Dashboard = () => {
       {
         name: "David Lee",
         initials: "DL",
-        message:
-          "Great! Let's schedule a demo.",
+        message: "Great! Let's schedule a demo.",
         time: "09:15 AM",
         status: "Demo Booked",
         avatar: "#ffd85c",
@@ -94,8 +91,7 @@ const Dashboard = () => {
       {
         name: "Sophia Martinez",
         initials: "SM",
-        message:
-          "That sounds good. Thank you!",
+        message: "That sounds good. Thank you!",
         time: "Yesterday",
         status: "Qualified",
         avatar: "#c9a8ef",
@@ -161,17 +157,6 @@ const Dashboard = () => {
         .join(" ") || currentUser.username
     : "";
 
-  // =========================================================
-  // AUTOMATIC DATA REFRESH
-  // =========================================================
-  // This is demo dynamic behavior.
-  //
-  // Later, replace this with your API call:
-  //
-  // fetch("http://127.0.0.1:8000/api/dashboard/")
-  //
-  // =========================================================
-
   useEffect(() => {
     const interval = setInterval(() => {
       setDashboard((previous) => ({
@@ -189,32 +174,25 @@ const Dashboard = () => {
           previous.activeLeads +
           Math.floor(Math.random() * 2),
 
-        responseTime:
-          Math.max(
-            10,
-            previous.responseTime +
-              Math.floor(Math.random() * 5) -
-              2
-          ),
+        activeConversations:
+          previous.activeConversations +
+          Math.floor(Math.random() * 2),
+
+        responseTime: Math.max(
+          10,
+          previous.responseTime +
+            Math.floor(Math.random() * 5) -
+            2
+        ),
       }));
     }, 5000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // =========================================================
-  // FORMAT NUMBER
-  // =========================================================
-
   const formatNumber = (value) => {
-    return new Intl.NumberFormat("en-US").format(
-      value
-    );
+    return new Intl.NumberFormat("en-US").format(value);
   };
-
-  // =========================================================
-  // STAT CARD
-  // =========================================================
 
   const StatCard = ({
     icon,
@@ -227,7 +205,6 @@ const Dashboard = () => {
   }) => {
     return (
       <div className="stat-card">
-
         <div
           className="stat-icon"
           style={{
@@ -239,42 +216,25 @@ const Dashboard = () => {
         </div>
 
         <div className="stat-details">
-
-          <div className="stat-title">
-            {title}
-          </div>
+          <div className="stat-title">{title}</div>
 
           <div className="stat-value">
-            {title === "Response Time"
+            {title === "Average ReplyTime"
               ? `${value}s`
               : formatNumber(value)}
           </div>
 
           <div className="stat-change">
-
-            {decrease ? (
-              <FaArrowDown />
-            ) : (
-              <FaArrowUp />
-            )}
+            {decrease ? <FaArrowDown /> : <FaArrowUp />}
 
             <span>{change}%</span>
 
-            <small>
-              vs previous period
-            </small>
-
+            <small>vs previous period</small>
           </div>
-
         </div>
-
       </div>
     );
   };
-
-  // =========================================================
-  // LINE CHART
-  // =========================================================
 
   const ConversationChart = () => {
     const chartData = dashboard.chart;
@@ -282,56 +242,41 @@ const Dashboard = () => {
     const width = 700;
     const height = 240;
 
-    const values = chartData.map(
-      (item) => item.value
-    );
+    const values = chartData.map((item) => item.value);
 
     const maxValue = Math.max(...values);
     const minValue = Math.min(...values);
 
-    const points = chartData.map(
-      (item, index) => {
+    const points = chartData.map((item, index) => {
+      const x =
+        index *
+        (width / (chartData.length - 1));
 
-        const x =
-          index *
-          (width /
-            (chartData.length - 1));
+      const y =
+        height -
+        ((item.value - minValue) /
+          Math.max(maxValue - minValue, 1)) *
+          175 -
+        20;
 
-        const y =
-          height -
-          ((item.value - minValue) /
-            Math.max(
-              maxValue - minValue,
-              1
-            )) *
-            175 -
-          20;
-
-        return {
-          x,
-          y,
-          value: item.value,
-        };
-      }
-    );
+      return {
+        x,
+        y,
+        value: item.value,
+      };
+    });
 
     const pointString = points
-      .map(
-        (point) =>
-          `${point.x},${point.y}`
-      )
+      .map((point) => `${point.x},${point.y}`)
       .join(" ");
 
     return (
       <div className="chart-container">
-
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="chart"
         >
-
           <defs>
-
             <linearGradient
               id="chartFill"
               x1="0"
@@ -339,7 +284,6 @@ const Dashboard = () => {
               x2="0"
               y2="1"
             >
-
               <stop
                 offset="0%"
                 stopColor="#7552df"
@@ -351,35 +295,25 @@ const Dashboard = () => {
                 stopColor="#7552df"
                 stopOpacity="0"
               />
-
             </linearGradient>
-
           </defs>
 
-          {/* Grid Lines */}
-
-          {[0, 1, 2, 3, 4].map(
-            (item) => (
-              <line
-                key={item}
-                x1="0"
-                y1={20 + item * 45}
-                x2={width}
-                y2={20 + item * 45}
-                stroke="#eeeeee"
-                strokeWidth="1"
-              />
-            )
-          )}
-
-          {/* Area */}
+          {[0, 1, 2, 3, 4].map((item) => (
+            <line
+              key={item}
+              x1="0"
+              y1={20 + item * 45}
+              x2={width}
+              y2={20 + item * 45}
+              stroke="#eeeeee"
+              strokeWidth="1"
+            />
+          ))}
 
           <polygon
             points={`0,240 ${pointString} ${width},240`}
             fill="url(#chartFill)"
           />
-
-          {/* Main Line */}
 
           <polyline
             points={pointString}
@@ -390,98 +324,69 @@ const Dashboard = () => {
             strokeLinejoin="round"
           />
 
-          {/* Points */}
-
-          {points.map(
-            (point, index) => (
-              <circle
-                key={index}
-                cx={point.x}
-                cy={point.y}
-                r="6"
-                fill="#6845d7"
-                stroke="#ffffff"
-                strokeWidth="3"
-              />
-            )
-          )}
-
+          {points.map((point, index) => (
+            <circle
+              key={index}
+              cx={point.x}
+              cy={point.y}
+              r="6"
+              fill="#6845d7"
+              stroke="#ffffff"
+              strokeWidth="3"
+            />
+          ))}
         </svg>
 
-        {/* Chart Labels */}
-
         <div className="chart-labels">
-
-          {chartData.map(
-            (item, index) => (
-              <span key={index}>
-                {item.day}
-              </span>
-            )
-          )}
-
+          {chartData.map((item, index) => (
+            <span key={index}>{item.day}</span>
+          ))}
         </div>
-
       </div>
     );
   };
 
-  // =========================================================
-  // LEAD SOURCE DONUT
-  // =========================================================
-
   const LeadSourceChart = () => {
-
     const sources = [
       {
         name: "WhatsApp",
-        value:
-          dashboard.leadSources.whatsapp,
+        value: dashboard.leadSources.whatsapp,
         color: "#0bbd70",
       },
       {
         name: "Website",
-        value:
-          dashboard.leadSources.website,
+        value: dashboard.leadSources.website,
         color: "#1677e8",
       },
       {
         name: "Facebook",
-        value:
-          dashboard.leadSources.facebook,
+        value: dashboard.leadSources.facebook,
         color: "#7652df",
       },
       {
         name: "Others",
-        value:
-          dashboard.leadSources.others,
+        value: dashboard.leadSources.others,
         color: "#f2ad15",
       },
     ];
 
     const total = sources.reduce(
-      (sum, item) =>
-        sum + item.value,
+      (sum, item) => sum + item.value,
       0
     );
 
     const radius = 48;
-
-    const circumference =
-      2 * Math.PI * radius;
+    const circumference = 2 * Math.PI * radius;
 
     let offset = 0;
 
     return (
       <div className="lead-source">
-
         <div className="donut-wrapper">
-
           <svg
             viewBox="0 0 120 120"
             className="donut"
           >
-
             <circle
               cx="60"
               cy="60"
@@ -491,99 +396,66 @@ const Dashboard = () => {
               strokeWidth="15"
             />
 
-            {sources.map(
-              (item, index) => {
+            {sources.map((item, index) => {
+              const percentage =
+                total === 0 ? 0 : item.value / total;
 
-                const percentage =
-                  total === 0
-                    ? 0
-                    : item.value / total;
+              const dash =
+                percentage * circumference;
 
-                const dash =
-                  percentage *
-                  circumference;
+              const currentOffset = offset;
 
-                const currentOffset =
-                  offset;
+              offset += dash;
 
-                offset += dash;
-
-                return (
-                  <circle
-                    key={index}
-                    cx="60"
-                    cy="60"
-                    r={radius}
-                    fill="none"
-                    stroke={item.color}
-                    strokeWidth="15"
-                    strokeDasharray={`${dash} ${
-                      circumference - dash
-                    }`}
-                    strokeDashoffset={
-                      -currentOffset
-                    }
-                    transform="rotate(-90 60 60)"
-                  />
-                );
-              }
-            )}
-
+              return (
+                <circle
+                  key={index}
+                  cx="60"
+                  cy="60"
+                  r={radius}
+                  fill="none"
+                  stroke={item.color}
+                  strokeWidth="15"
+                  strokeDasharray={`${dash} ${
+                    circumference - dash
+                  }`}
+                  strokeDashoffset={-currentOffset}
+                  transform="rotate(-90 60 60)"
+                />
+              );
+            })}
           </svg>
 
           <div className="donut-center">
-
             <strong>{total}%</strong>
-
             <small>Leads</small>
-
           </div>
-
         </div>
 
         <div className="lead-legend">
+          {sources.map((item, index) => (
+            <div
+              className="legend-item"
+              key={index}
+            >
+              <span
+                className="legend-dot"
+                style={{
+                  background: item.color,
+                }}
+              />
 
-          {sources.map(
-            (item, index) => (
-              <div
-                className="legend-item"
-                key={index}
-              >
+              <span>{item.name}</span>
 
-                <span
-                  className="legend-dot"
-                  style={{
-                    background:
-                      item.color,
-                  }}
-                />
-
-                <span>
-                  {item.name}
-                </span>
-
-                <strong>
-                  {item.value}%
-                </strong>
-
-              </div>
-            )
-          )}
-
+              <strong>{item.value}%</strong>
+            </div>
+          ))}
         </div>
-
       </div>
     );
   };
 
-  // =========================================================
-  // STATUS
-  // =========================================================
-
-  const getStatusStyle = (
-    status
-  ) => {
-
+  const getStatusStyle = (status) => {
     if (status === "New") {
       return {
         background: "#eee8ff",
@@ -604,29 +476,16 @@ const Dashboard = () => {
     };
   };
 
-  // =========================================================
-  // RETURN
-  // =========================================================
-
   return (
     <>
-
-      {/* =====================================================
-          COMPLETE CSS INSIDE SAME FILE
-      ===================================================== */}
-
       <style>{`
-
         * {
           box-sizing: border-box;
         }
 
         body {
           margin: 0;
-          font-family:
-            Inter,
-            Arial,
-            sans-serif;
+          font-family: Inter, Arial, sans-serif;
           background: #f8f9fc;
         }
 
@@ -634,38 +493,23 @@ const Dashboard = () => {
           font-family: inherit;
         }
 
-        /* ===============================
-           MAIN PAGE
-        =============================== */
-
         .dashboard-page {
           min-height: 100vh;
           background: #f8f9fc;
           color: #202124;
         }
 
-        /* ===============================
-           SIDEBAR
-        =============================== */
-
         .sidebar {
           position: fixed;
           left: 0;
           top: 0;
           bottom: 0;
-
           width: 190px;
-
           background: #ffffff;
-
-          border-right:
-            1px solid #eeeeee;
-
+          border-right: 1px solid #eeeeee;
           padding: 20px 12px;
-
           display: flex;
           flex-direction: column;
-
           z-index: 100;
           transition: width 0.25s ease;
         }
@@ -697,17 +541,12 @@ const Dashboard = () => {
         .logo {
           width: 165px;
           height: 38px;
-
           object-fit: contain;
           object-position: center;
-
           display: flex;
           align-items: center;
           justify-content: center;
-
-          margin:
-            0 auto 25px;
-
+          margin: 0 auto 25px;
           transition: width 0.25s ease;
         }
 
@@ -755,24 +594,15 @@ const Dashboard = () => {
         .nav-button {
           border: none;
           background: transparent;
-
           width: 100%;
-
           display: flex;
           align-items: center;
-
           gap: 11px;
-
           padding: 10px;
-
           border-radius: 10px;
-
           color: #555b65;
-
           font-size: 13px;
-
           cursor: pointer;
-
           text-align: left;
         }
 
@@ -789,32 +619,19 @@ const Dashboard = () => {
 
         .inbox-badge {
           margin-left: auto;
-
           background: #0bbd71;
           color: white;
-
-          padding:
-            3px 7px;
-
+          padding: 3px 7px;
           border-radius: 12px;
-
           font-size: 9px;
         }
 
-        /* ===============================
-           PROFILE
-        =============================== */
-
         .profile {
           margin-top: auto;
-
           border-top: 1px solid #eeeeee;
-
           padding: 16px 10px 4px;
-
           display: flex;
           align-items: center;
-
           gap: 9px;
           color: #555b65;
         }
@@ -825,7 +642,6 @@ const Dashboard = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-
           color: #6845d7;
           background: #f0eaff;
           border-radius: 50%;
@@ -835,7 +651,6 @@ const Dashboard = () => {
 
         .profile-details {
           flex: 1;
-
           display: flex;
           flex-direction: column;
         }
@@ -856,45 +671,25 @@ const Dashboard = () => {
           padding-right: 0;
         }
 
-        /* ===============================
-           MAIN CONTENT
-        =============================== */
-
         .main-content {
           margin-left: 190px;
-
           min-height: 100vh;
-
-          width:
-            calc(100% - 190px);
+          width: calc(100% - 190px);
         }
-
-        /* ===============================
-           HEADER
-        =============================== */
 
         .header {
           height: 70px;
-
           background: white;
-
-          border-bottom:
-            1px solid #eeeeee;
-
+          border-bottom: 1px solid #eeeeee;
           display: flex;
           align-items: center;
-
           justify-content: space-between;
-
-          padding:
-            0 25px;
+          padding: 0 25px;
         }
 
         .header h1 {
           margin: 0;
-
           font-size: 24px;
-
           font-weight: 700;
           letter-spacing: -0.2px;
           color: #202124;
@@ -907,104 +702,70 @@ const Dashboard = () => {
         .header-right {
           display: flex;
           align-items: center;
-
           gap: 20px;
         }
 
         .whats-new {
-          border:
-            1px solid #e8e8e8;
-
+          border: 1px solid #e8e8e8;
           background: white;
-
           border-radius: 8px;
-
-          padding:
-            8px 13px;
-
+          padding: 8px 13px;
           display: flex;
           align-items: center;
-
           gap: 7px;
-
           font-size: 10px;
-
           color: #555;
         }
 
         .header-icon {
           color: #666;
-
           font-size: 15px;
         }
 
         .notification {
           position: relative;
-
           color: #555;
-
           font-size: 16px;
         }
 
         .notification-number {
           position: absolute;
-
           top: -8px;
           right: -8px;
-
           width: 16px;
           height: 16px;
-
           border-radius: 50%;
-
           background: #ee4054;
           color: white;
-
           display: flex;
           align-items: center;
           justify-content: center;
-
           font-size: 8px;
         }
 
         .user {
           width: 36px;
           height: 36px;
-
           border-radius: 50%;
-
           background: #e5e5e5;
-
           display: flex;
           align-items: center;
           justify-content: center;
-
           font-size: 11px;
           font-weight: 700;
-
           position: relative;
         }
 
         .online {
           position: absolute;
-
           right: 0;
           bottom: 0;
-
           width: 9px;
           height: 9px;
-
           border-radius: 50%;
-
           background: #0abb70;
-
-          border:
-            2px solid white;
+          border: 2px solid white;
         }
-
-        /* ===============================
-           CONTENT
-        =============================== */
 
         .content {
           padding: 20px;
@@ -1013,75 +774,46 @@ const Dashboard = () => {
         .date-row {
           display: flex;
           justify-content: flex-end;
-
           margin-bottom: 18px;
         }
 
         .date-button {
-          border:
-            1px solid #e7e7e7;
-
+          border: 1px solid #e7e7e7;
           background: white;
-
           border-radius: 8px;
-
-          padding:
-            8px 11px;
-
+          padding: 8px 11px;
           display: flex;
           align-items: center;
-
           gap: 8px;
-
           color: #555;
-
           font-size: 10px;
         }
 
-        /* ===============================
-           STATISTICS
-        =============================== */
-
         .stats {
           display: grid;
-
-          grid-template-columns:
-            repeat(4, 1fr);
-
+          grid-template-columns: repeat(4, 1fr);
           gap: 14px;
-
           margin-bottom: 16px;
         }
 
         .stat-card {
           background: white;
-
-          border:
-            1px solid #eeeeee;
-
+          border: 1px solid #eeeeee;
           border-radius: 15px;
-
           padding: 17px;
-
           min-height: 118px;
-
           display: flex;
-
           gap: 13px;
         }
 
         .stat-icon {
           width: 42px;
           height: 42px;
-
           min-width: 42px;
-
           border-radius: 50%;
-
           display: flex;
           align-items: center;
           justify-content: center;
-
           font-size: 18px;
         }
 
@@ -1091,105 +823,69 @@ const Dashboard = () => {
 
         .stat-title {
           color: #656565;
-
           font-size: 10px;
-
           margin-bottom: 6px;
         }
 
         .stat-value {
           font-size: 23px;
-
           font-weight: 700;
-
           margin-bottom: 7px;
         }
 
         .stat-change {
           display: flex;
           align-items: center;
-
           gap: 4px;
-
           color: #08b874;
-
           font-size: 10px;
         }
 
         .stat-change small {
           color: #888;
-
           font-size: 9px;
         }
 
-        /* ===============================
-           GRID
-        =============================== */
-
         .middle-section {
           display: grid;
-
-          grid-template-columns:
-            minmax(0, 1.45fr)
-            minmax(340px, 1fr);
-
+          grid-template-columns: minmax(0, 1.45fr) minmax(340px, 1fr);
           gap: 16px;
-
           margin-bottom: 16px;
         }
 
         .bottom-section {
           display: grid;
-
-          grid-template-columns:
-            repeat(3, 1fr);
-
+          grid-template-columns: repeat(3, 1fr);
           gap: 16px;
         }
 
         .card {
           background: white;
-
-          border:
-            1px solid #eeeeee;
-
+          border: 1px solid #eeeeee;
           border-radius: 15px;
-
           padding: 17px;
         }
 
         .card-header {
           display: flex;
           align-items: center;
-
           justify-content: space-between;
-
           margin-bottom: 13px;
         }
 
         .card-header h2 {
           font-size: 12px;
-
           margin: 0;
-
           font-weight: 700;
         }
 
         .view-button {
           background: white;
-
-          border:
-            1px solid #e6e6e6;
-
+          border: 1px solid #e6e6e6;
           border-radius: 7px;
-
-          padding:
-            6px 10px;
-
+          padding: 6px 10px;
           font-size: 9px;
-
           color: #555;
-
           cursor: pointer;
         }
 
@@ -1198,10 +894,6 @@ const Dashboard = () => {
           color: #6845d7;
         }
 
-        /* ===============================
-           CHART
-        =============================== */
-
         .chart-container {
           width: 100%;
         }
@@ -1209,36 +901,22 @@ const Dashboard = () => {
         .chart {
           width: 100%;
           height: 220px;
-
           display: block;
         }
 
         .chart-labels {
           display: flex;
-
-          justify-content:
-            space-between;
-
+          justify-content: space-between;
           color: #777;
-
           font-size: 9px;
         }
-
-        /* ===============================
-           CONVERSATIONS
-        =============================== */
 
         .conversation {
           display: flex;
           align-items: center;
-
           gap: 9px;
-
-          padding:
-            8px 0;
-
-          border-bottom:
-            1px solid #f3f3f3;
+          padding: 8px 0;
+          border-bottom: 1px solid #f3f3f3;
         }
 
         .conversation:last-child {
@@ -1248,97 +926,66 @@ const Dashboard = () => {
         .conversation-avatar {
           width: 32px;
           height: 32px;
-
           min-width: 32px;
-
           border-radius: 50%;
-
           display: flex;
           align-items: center;
           justify-content: center;
-
           font-size: 9px;
-
           font-weight: 700;
         }
 
         .conversation-info {
           flex: 1;
-
           min-width: 0;
         }
 
         .conversation-info strong {
           display: block;
-
           font-size: 10px;
-
           margin-bottom: 3px;
         }
 
         .conversation-info p {
           margin: 0;
-
           font-size: 8px;
-
           color: #777;
-
           overflow: hidden;
-
           text-overflow: ellipsis;
-
           white-space: nowrap;
         }
 
         .conversation-right {
           min-width: 75px;
-
           text-align: right;
         }
 
         .conversation-right small {
           display: block;
-
           font-size: 8px;
-
           color: #777;
-
           margin-bottom: 4px;
         }
 
         .status {
           display: inline-block;
-
-          padding:
-            4px 7px;
-
+          padding: 4px 7px;
           border-radius: 5px;
-
           font-size: 7px;
         }
 
-        /* ===============================
-           LEAD SOURCE
-        =============================== */
-
         .lead-source {
           display: flex;
-
           align-items: center;
-
           gap: 10px;
-
           min-height: 145px;
         }
 
         .donut-wrapper {
           width: 145px;
           height: 145px;
-
           min-width: 145px;
-
           position: relative;
-
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1351,10 +998,8 @@ const Dashboard = () => {
 
         .donut-center {
           position: absolute;
-
           display: flex;
           flex-direction: column;
-
           align-items: center;
         }
 
@@ -1364,7 +1009,6 @@ const Dashboard = () => {
 
         .donut-center small {
           font-size: 8px;
-
           color: #888;
         }
 
@@ -1374,15 +1018,10 @@ const Dashboard = () => {
 
         .legend-item {
           display: flex;
-
           align-items: center;
-
           gap: 6px;
-
           margin-bottom: 10px;
-
           font-size: 9px;
-
           color: #555;
         }
 
@@ -1393,27 +1032,15 @@ const Dashboard = () => {
         .legend-dot {
           width: 7px;
           height: 7px;
-
           border-radius: 50%;
         }
 
-        /* ===============================
-           LIST ITEMS
-        =============================== */
-
         .list-item {
           display: flex;
-
           align-items: center;
-
           gap: 10px;
-
-          padding:
-            12px 0;
-
-          border-bottom:
-            1px solid #f3f3f3;
-
+          padding: 12px 0;
+          border-bottom: 1px solid #f3f3f3;
           font-size: 10px;
         }
 
@@ -1424,17 +1051,12 @@ const Dashboard = () => {
         .list-icon {
           width: 27px;
           height: 27px;
-
           border-radius: 7px;
-
           background: #eee8ff;
-
           color: #7350d8;
-
           display: flex;
           align-items: center;
           justify-content: center;
-
           font-size: 11px;
         }
 
@@ -1446,34 +1068,24 @@ const Dashboard = () => {
           font-weight: 700;
         }
 
-        /* ===============================
-           RESPONSIVE
-        =============================== */
-
         @media (max-width: 1100px) {
-
           .stats {
-            grid-template-columns:
-              repeat(2, 1fr);
+            grid-template-columns: repeat(2, 1fr);
           }
 
           .bottom-section {
             grid-template-columns: 1fr;
           }
-
         }
 
         @media (max-width: 800px) {
-
           .sidebar:not(.collapsed) {
             width: 190px;
           }
 
           .main-content {
             margin-left: 65px;
-
-            width:
-              calc(100% - 65px);
+            width: calc(100% - 65px);
           }
 
           .middle-section {
@@ -1483,19 +1095,21 @@ const Dashboard = () => {
           .stats {
             grid-template-columns: 1fr;
           }
-
         }
-
       `}</style>
 
-      <div className={`dashboard-page${sidebarCollapsed ? " sidebar-is-collapsed" : ""}`}>
-
-        {/* ===================================================
-            SIDEBAR
-        =================================================== */}
-
-        <aside className={`sidebar${sidebarCollapsed ? " collapsed" : ""}`}>
-
+      <div
+        className={`dashboard-page${
+          sidebarCollapsed
+            ? " sidebar-is-collapsed"
+            : ""
+        }`}
+      >
+        <aside
+          className={`sidebar${
+            sidebarCollapsed ? " collapsed" : ""
+          }`}
+        >
           <img
             className="logo"
             src="/bhisha-logo.svg"
@@ -1503,7 +1117,6 @@ const Dashboard = () => {
           />
 
           <nav className="navigation">
-
             <div className="dashboard-nav-row">
               <button
                 className="nav-button active"
@@ -1512,11 +1125,24 @@ const Dashboard = () => {
                 <FaChartLine />
                 <span>Dashboard</span>
               </button>
+
               <button
                 className="sidebar-toggle"
-                onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
-                aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                onClick={() =>
+                  setSidebarCollapsed(
+                    (collapsed) => !collapsed
+                  )
+                }
+                aria-label={
+                  sidebarCollapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar"
+                }
+                title={
+                  sidebarCollapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar"
+                }
               >
                 <FaBars />
               </button>
@@ -1525,16 +1151,20 @@ const Dashboard = () => {
             <button
               className="nav-button"
               title="Inbox"
-              onClick={() => navigate("/whatsapp/inbox")}
+              onClick={() =>
+                navigate("/whatsapp/inbox")
+              }
             >
               <FaInbox />
               <span>Inbox</span>
             </button>
-            
+
             <button
               className="nav-button"
               title="Templates"
-              onClick={() => navigate("/whatsapp/templates")}
+              onClick={() =>
+                navigate("/whatsapp/templates")
+              }
             >
               <FaFileAlt />
               <span>Templates</span>
@@ -1543,16 +1173,20 @@ const Dashboard = () => {
             <button
               className="nav-button"
               title="Campaigns"
-              onClick={() => navigate("/whatsapp/campaigns")}
+              onClick={() =>
+                navigate("/whatsapp/campaigns")
+              }
             >
               <FaBullhorn />
               <span>Campaigns</span>
             </button>
 
-            <button 
+            <button
               className="nav-button"
               title="Analytics"
-              onClick={() => navigate("/whatsapp/analytics")}
+              onClick={() =>
+                navigate("/whatsapp/analytics")
+              }
             >
               <FaChartLine />
               <span>Analytics</span>
@@ -1561,53 +1195,61 @@ const Dashboard = () => {
             <button
               className="nav-button"
               title="History"
-              onClick={() => navigate("/whatsapp/history")}
+              onClick={() =>
+                navigate("/whatsapp/history")
+              }
             >
               <FaHistory />
               <span>History</span>
             </button>
 
-            <button className="nav-button" title="Recharge">
+            <button
+              className="nav-button"
+              title="Recharge"
+            >
               <FaWallet />
               <span>Recharge</span>
             </button>
 
-            <button className="nav-button" title="Support">
+            <button
+              className="nav-button"
+              title="Support"
+              onClick={() =>
+                navigate("/whatsapp/support")
+              }
+            >
               <FaHeadset />
               <span>Support</span>
             </button>
 
-            <button className="nav-button" title="Settings">
+            <button
+              className="nav-button"
+              title="Settings"
+              onClick={() =>
+                navigate("/whatsapp/settings")
+              }
+            >
               <FaCog />
               <span>Settings</span>
             </button>
-
           </nav>
-
         </aside>
 
-        {/* ===================================================
-            MAIN CONTENT
-        =================================================== */}
-
         <main className="main-content">
-
-          {/* HEADER */}
-
           <header className="header">
-
             <h1>
-              Hi<span>{profileName ? `, ${profileName}` : ""}</span>
+              Hi
+              <span>
+                {profileName
+                  ? `, ${profileName}`
+                  : ""}
+              </span>
             </h1>
 
             <div className="header-right">
-
               <button className="whats-new">
-
                 <FaRocket />
-
                 What's New
-
               </button>
 
               <FaQuestionCircle
@@ -1615,51 +1257,38 @@ const Dashboard = () => {
               />
 
               <div className="notification">
-
                 <FaBell />
 
                 <span className="notification-number">
                   {dashboard.notifications}
                 </span>
-
               </div>
 
-              <div className="profile-icon">
-
+              <div
+                className="profile-icon"
+                onClick={() =>
+                  navigate("/whatsapp/settings")
+                }
+                style={{
+                  cursor: "pointer",
+                }}
+                title="Settings"
+              >
                 <FaUserCircle />
-
               </div>
-
             </div>
-
           </header>
 
-          {/* CONTENT */}
-
           <section className="content">
-
-            {/* DATE */}
-
             <div className="date-row">
-
               <button className="date-button">
-
                 <FaCalendarAlt />
-
                 May 20 – May 27, 2025
-
                 <FaChevronDown />
-
               </button>
-
             </div>
 
-            {/* =================================================
-                STAT CARDS
-            ================================================= */}
-
             <div className="stats">
-
               <StatCard
                 icon={<FaWhatsapp />}
                 title="Customer Chats"
@@ -1702,31 +1331,17 @@ const Dashboard = () => {
               <StatCard
                 icon={<FaClock />}
                 title="Average ReplyTime"
-                value={
-                  dashboard.responseTime
-                }
-                change={
-                  dashboard.responseChange
-                }
+                value={dashboard.responseTime}
+                change={dashboard.responseChange}
                 decrease={true}
                 background="#fff3d8"
                 color="#eea90b"
               />
-
             </div>
 
-            {/* =================================================
-                MIDDLE
-            ================================================= */}
-
             <div className="middle-section">
-
-              {/* CHART */}
-
               <div className="card">
-
                 <div className="card-header">
-
                   <h2>
                     Conversations Over Time
                   </h2>
@@ -1734,19 +1349,13 @@ const Dashboard = () => {
                   <button className="view-button">
                     View Analytics
                   </button>
-
                 </div>
 
                 <ConversationChart />
-
               </div>
 
-              {/* RECENT CONVERSATIONS */}
-
               <div className="card">
-
                 <div className="card-header">
-
                   <h2>
                     Recent Conversations
                   </h2>
@@ -1754,17 +1363,14 @@ const Dashboard = () => {
                   <button className="view-button">
                     View Inbox
                   </button>
-
                 </div>
 
                 {dashboard.conversations.map(
                   (conversation, index) => (
-
                     <div
                       className="conversation"
                       key={index}
                     >
-
                       <div
                         className="conversation-avatar"
                         style={{
@@ -1776,7 +1382,6 @@ const Dashboard = () => {
                       </div>
 
                       <div className="conversation-info">
-
                         <strong>
                           {conversation.name}
                         </strong>
@@ -1784,11 +1389,9 @@ const Dashboard = () => {
                         <p>
                           {conversation.message}
                         </p>
-
                       </div>
 
                       <div className="conversation-right">
-
                         <small>
                           {conversation.time}
                         </small>
@@ -1801,49 +1404,29 @@ const Dashboard = () => {
                         >
                           {conversation.status}
                         </span>
-
                       </div>
-
                     </div>
-
                   )
                 )}
-
               </div>
-
             </div>
 
-            {/* =================================================
-                BOTTOM
-            ================================================= */}
-
             <div className="bottom-section">
-
-              
-              {/* TOP CAMPAIGNS */}
-
               <div className="card">
-
                 <div className="card-header">
-
-                  <h2>
-                    Top Campaigns
-                  </h2>
+                  <h2>Top Campaigns</h2>
 
                   <button className="view-button">
                     View All
                   </button>
-
                 </div>
 
                 {dashboard.campaigns.map(
                   (campaign, index) => (
-
                     <div
                       className="list-item"
                       key={index}
                     >
-
                       <div className="list-icon">
                         {campaign.icon}
                       </div>
@@ -1857,20 +1440,13 @@ const Dashboard = () => {
                           campaign.value
                         )}
                       </strong>
-
                     </div>
-
                   )
                 )}
-
               </div>
 
-              {/* AI AGENT */}
-
               <div className="card">
-
                 <div className="card-header">
-
                   <h2>
                     Active Team Departments
                   </h2>
@@ -1878,22 +1454,18 @@ const Dashboard = () => {
                   <button className="view-button">
                     View All
                   </button>
-
                 </div>
 
                 {dashboard.aiAgents.map(
                   (agent, index) => (
-
                     <div
                       className="list-item"
                       key={index}
                     >
-
                       <div
                         className="list-icon"
                         style={{
-                          background:
-                            "#e4f8ef",
+                          background: "#e4f8ef",
                         }}
                       >
                         {agent.icon}
@@ -1908,22 +1480,14 @@ const Dashboard = () => {
                           agent.value
                         )}
                       </strong>
-
                     </div>
-
                   )
                 )}
-
               </div>
-
             </div>
-
           </section>
-
         </main>
-
       </div>
-
     </>
   );
 };

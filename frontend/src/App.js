@@ -99,6 +99,8 @@ const Templates = lazy(() => import('./components/Templates'));
 const Campaigns = lazy(() => import('./components/Campaigns'));
 const Analytics = lazy(() => import('./components/Analytics'));
 const History = lazy(() => import('./components/History'));
+const Support = lazy(() => import('./components/Support'));
+const Settings = lazy(() => import('./components/Settings'));
 
 
 function App() {
@@ -322,6 +324,8 @@ function App() {
         <Route path="/whatsapp/campaigns" element={privateRoute('WhatsApp Campaigns', <Campaigns />)} />
         <Route path="/whatsapp/Analytics" element={privateRoute('WhatsApp Analytics', <Analytics />)} />
         <Route path="/whatsapp/History" element={privateRoute('WhatsApp History', <History />)} />
+        <Route path="/whatsapp/Settings" element={privateRoute('WhatsApp Settings', <Settings />)} />
+        <Route path="/whatsapp/Support" element={privateRoute('WhatsApp Support', <Support />)} />
         <Route path="/admin/whatsapp/dashboard" element={privateRoute('Admin WhatsApp Dashboard', <AdminWhatsAppDashboard />)} />
         
         {/* SMS Routes */}
