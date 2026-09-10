@@ -94,13 +94,13 @@ const Reports = lazy(() => import('./components/Reports'));
 const ContactSupportPage = lazy(() => import('./dashboard/ContactSupportPage'));
 const SenderIdRequestPage = lazy(() => import('./dashboard/SenderIdRequestPage'));
 const DashboardLayout = lazy(() => import('./dashboard/Layout'));
-const Inbox = lazy(() => import('./components/Inbox'));
-const Templates = lazy(() => import('./components/Templates'));
-const Campaigns = lazy(() => import('./components/Campaigns'));
-const Analytics = lazy(() => import('./components/Analytics'));
-const History = lazy(() => import('./components/History'));
-const Support = lazy(() => import('./components/Support'));
-const Settings = lazy(() => import('./components/Settings'));
+const Inbox = lazy(() => import('./components/WhatsApp_Inbox'));
+const Templates = lazy(() => import('./components/WhatsApp_Templates'));
+const Campaigns = lazy(() => import('./components/WhatsApp_Campaigns'));
+const Analytics = lazy(() => import('./components/WhatsApp_Analytics'));
+const History = lazy(() => import('./components/WhatsApp_History'));
+const Support = lazy(() => import('./components/WhatsApp_Support'));
+const Settings = lazy(() => import('./components/WhatsApp_Settings'));
 
 
 function App() {

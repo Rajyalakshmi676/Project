@@ -541,8 +541,8 @@ function History() {
                 onClick={() => toggleSection("message")}
               >
                 <div className="history-button-left">
-                  <div className="history-icon">M</div>
-                  <span>Message History</span>
+                  <div className="history-icon">C</div>
+                  <span>Conversation History</span>
                 </div>
 
                 <span
@@ -575,47 +575,7 @@ function History() {
               )}
             </div>
 
-            {/* CONVERSATION HISTORY */}
-            <div
-              className={`history-option conversation-option ${
-                openSection === "conversation" ? "open-card" : ""
-              }`}
-            >
-              <button
-                className="history-button"
-                onClick={() => toggleSection("conversation")}
-              >
-                <div className="history-button-left">
-                  <div className="history-icon">C</div>
-                  <span>Conversation History</span>
-                </div>
-
-                <span
-                  className={`history-arrow ${
-                    openSection === "conversation" ? "open" : ""
-                  }`}
-                >
-                  ▼
-                </span>
-              </button>
-
-              {openSection === "conversation" && (
-                <div className="sub-options">
-                  <div className="sub-option">
-                    Open Conversations
-                  </div>
-
-                  <div className="sub-option">
-                    Closed Conversations
-                  </div>
-
-                  <div className="sub-option">
-                    Archived Conversations
-                  </div>
-                </div>
-              )}
-            </div>
-
+            
             {/* CAMPAIGN HISTORY */}
             <div
               className={`history-option campaign-option ${

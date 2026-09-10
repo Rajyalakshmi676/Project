@@ -6,7 +6,6 @@ const templates = [
     name: 'Welcome Message',
     category: 'Greeting',
     status: 'Active',
-    lastUsed: '2 days ago',
     text: 'Hi {{first_name}}, welcome to Bhisha! We are happy to help you with your WhatsApp messaging needs.',
   },
   {
@@ -14,7 +13,6 @@ const templates = [
     name: 'Product Follow-up',
     category: 'Sales',
     status: 'Active',
-    lastUsed: 'Today',
     text: 'Hello {{first_name}}, we hope you are doing well. Would you like a quick demo of our product?',
   },
   {
@@ -22,7 +20,6 @@ const templates = [
     name: 'Appointment Reminder',
     category: 'Support',
     status: 'Draft',
-    lastUsed: '5 days ago',
     text: 'Hi {{first_name}}, this is a reminder for your scheduled appointment tomorrow at 10:00 AM.',
   },
 ];
@@ -48,7 +45,7 @@ const Templates = () => {
           flexWrap: 'wrap',
         }}>
           <div>
-            <p style={{ margin: 0, color: '#10b981', fontWeight: 700, letterSpacing: '0.04em' }}>WHATSAPP</p>
+            <p style={{ margin: 0, color: '#10b981', fontWeight: 700, letterSpacing: '0.04em' }}></p>
             <h1 style={{ margin: '8px 0 0', fontSize: '32px', color: '#111827' }}>Templates</h1>
           </div>
 
@@ -124,7 +121,7 @@ const Templates = () => {
                 color: '#6b7280',
                 fontSize: '12px',
               }}>
-                <span>Last used: {template.lastUsed}</span>
+            
                 <button style={{
                   border: 'none',
                   background: 'transparent',
@@ -132,7 +129,6 @@ const Templates = () => {
                   fontWeight: 700,
                   cursor: 'pointer',
                 }}>
-                  Edit
                 </button>
               </div>
             </div>
