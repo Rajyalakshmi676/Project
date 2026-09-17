@@ -101,6 +101,13 @@ const Analytics = lazy(() => import('./components/WhatsApp_Analytics'));
 const History = lazy(() => import('./components/WhatsApp_History'));
 const Support = lazy(() => import('./components/WhatsApp_Support'));
 const Settings = lazy(() => import('./components/WhatsApp_Settings'));
+const AdminWhatsAppAccounts = lazy(() => import('./components/Admin_WhatsApp_WhatsAppAccounts'));
+const AdminWhatsAppCustomers = lazy(() => import('./components/Admin_WhatsApp_Customers'));
+const AdminWhatsAppMessages = lazy(() => import('./components/Admin_WhatsApp_Messages'));
+const AdminWhatsAppAutomation = lazy(() => import('./components/Admin_WhatsApp_Automation'));
+
+
+
 
 
 function App() {
@@ -327,6 +334,10 @@ function App() {
         <Route path="/whatsapp/Settings" element={privateRoute('WhatsApp Settings', <Settings />)} />
         <Route path="/whatsapp/Support" element={privateRoute('WhatsApp Support', <Support />)} />
         <Route path="/admin/whatsapp/dashboard" element={privateRoute('Admin WhatsApp Dashboard', <AdminWhatsAppDashboard />)} />
+        <Route path="/admin/whatsapp/accounts" element={adminRoute('Admin WhatsApp Accounts', <AdminWhatsAppAccounts />)} />
+        <Route path="/admin/whatsapp/customers" element={adminRoute('Admin WhatsApp Customers', <AdminWhatsAppCustomers />)} />
+        <Route path="/admin/whatsapp/messages" element={adminRoute('Admin WhatsApp Messages', <AdminWhatsAppMessages />)} />
+        <Route path="/admin/whatsapp/automation" element={adminRoute('Admin WhatsApp Automation', <AdminWhatsAppAutomation />)} />
         
         {/* SMS Routes */}
         <Route path="/sms/send" element={adminRoute('SMS Send', <SMSSend />)} />

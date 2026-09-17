@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaWhatsapp,
   FaUsers,
@@ -20,6 +21,7 @@ import {
 } from "react-icons/fa";
 
 const AdminWhatsAppDashboard = () => {
+  const navigate = useNavigate();
 
   // =====================================================
   // ADMIN DASHBOARD DATA
@@ -1055,17 +1057,17 @@ const AdminWhatsAppDashboard = () => {
               <span>Dashboard</span>
             </button>
 
-            <button>
+            <button onClick={() => navigate('/admin/whatsapp/accounts')}>
               <FaWhatsapp />
               <span>WhatsApp Accounts</span>
             </button>
 
-            <button>
+            <button onClick={() => navigate('/admin/whatsapp/customers')}>
               <FaUsers />
               <span>Customers</span>
             </button>
 
-            <button>
+            <button onClick={() => navigate('/admin/whatsapp/messages')}>
               <FaPaperPlane />
               <span>Messages</span>
             </button>
@@ -1080,7 +1082,7 @@ const AdminWhatsAppDashboard = () => {
               <span>Templates</span>
             </button>
 
-            <button>
+            <button onClick={() => navigate('/admin/whatsapp/automation')}>
               <FaRobot />
               <span>Automation</span>
             </button>
