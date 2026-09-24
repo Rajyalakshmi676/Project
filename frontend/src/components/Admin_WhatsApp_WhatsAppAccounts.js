@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import API from "../api";
 
 export default function AdminWhatsAppAccounts() {
   const [openOption, setOpenOption] = useState("Account Overview");
@@ -10,11 +11,7 @@ export default function AdminWhatsAppAccounts() {
       name: "Account Overview",
       icon: "▣",
     },
-    {
-      name: "WhatsApp Numbers",
-      icon: "◉",
-      subOptions: ["Connected Numbers", "Add Number", "Number Status"],
-    },
+    
     {
       name: "Business Profile",
       icon: "▤",
@@ -87,19 +84,7 @@ export default function AdminWhatsAppAccounts() {
     switch (selectedPage) {
       case "Account Overview":
         return <AccountOverview />;
-
-      case "WhatsApp Numbers":
-        return <WhatsAppNumbersOverview />;
-
-      case "Connected Numbers":
-        return <ConnectedNumbers />;
-
-      case "Add Number":
-        return <AddNumber />;
-
-      case "Number Status":
-        return <NumberStatus />;
-
+     
       case "Business Profile":
         return <BusinessProfileOverview />;
 
@@ -708,17 +693,25 @@ function FormField({
 }
 
 function AccountOverview() {
+  const [accountName, setAccountName] = useState("");
+  const [accountId, setAccountId] = useState("");
+
+  useEffect(() => {
+    API.get("whatsapp-account-overview/")
+      .then((response) => {
+        setAccountName(response.data.account_name);
+        setAccountId(response.data.account_id);
+      })
+      .catch((error) => {
+        console.error("Failed to load WhatsApp account overview:", error);
+      });
+  }, []);
+
   return (
     <PageContainer
       title="Account Overview"
       description="View the overall WhatsApp account information."
     >
-      <div className="wa-stats">
-        <StatCard label="Connected Numbers" value="3" />
-        <StatCard label="Active Users" value="12" />
-        <StatCard label="Account Status" value="Active" />
-      </div>
-
       <div className="wa-section">
         <h3>Account Information</h3>
 
@@ -726,26 +719,14 @@ function AccountOverview() {
           <div className="wa-info-box">
             <div className="wa-info-title">Account Name</div>
             <div className="wa-info-value">
-              Business Account
+              {accountName}
             </div>
           </div>
 
           <div className="wa-info-box">
             <div className="wa-info-title">Account ID</div>
             <div className="wa-info-value">
-              WA-ACC-001245
-            </div>
-          </div>
-
-          <div className="wa-info-box">
-            <div className="wa-info-title">Status</div>
-            <span className="wa-status">Active</span>
-          </div>
-
-          <div className="wa-info-box">
-            <div className="wa-info-title">Created On</div>
-            <div className="wa-info-value">
-              15 January 2026
+              {accountId}
             </div>
           </div>
         </div>
@@ -753,7 +734,6 @@ function AccountOverview() {
     </PageContainer>
   );
 }
-
 function WhatsAppNumbersOverview() {
   return (
     <PageContainer
@@ -787,134 +767,6 @@ function WhatsAppNumbersOverview() {
   );
 }
 
-function ConnectedNumbers() {
-  return (
-    <PageContainer
-      title="Connected Numbers"
-      description="View the WhatsApp numbers currently connected."
-    >
-      <div className="wa-section">
-        <div className="wa-list">
-          <div className="wa-list-item">
-            <div className="wa-list-left">
-              <strong>+91 90000 11111</strong>
-              <span>Primary WhatsApp Number</span>
-            </div>
-            <span className="wa-status">Connected</span>
-          </div>
-
-          <div className="wa-list-item">
-            <div className="wa-list-left">
-              <strong>+91 90000 22222</strong>
-              <span>Support Number</span>
-            </div>
-            <span className="wa-status">Connected</span>
-          </div>
-
-          <div className="wa-list-item">
-            <div className="wa-list-left">
-              <strong>+91 90000 33333</strong>
-              <span>New Number</span>
-            </div>
-            <span className="wa-status warning">Pending</span>
-          </div>
-        </div>
-      </div>
-    </PageContainer>
-  );
-}
-
-function AddNumber() {
-  return (
-    <PageContainer
-      title="Add Number"
-      description="Add a new WhatsApp number to the account."
-    >
-      <div className="wa-section">
-        <div className="wa-form">
-          <FormField
-            label="Phone Number"
-            placeholder="+91 XXXXX XXXXX"
-          />
-
-          <FormField
-            label="Display Name"
-            placeholder="Enter display name"
-          />
-
-          <FormField
-            label="Country"
-            placeholder="India"
-          />
-
-          <FormField
-            label="Business Category"
-            placeholder="Business"
-          />
-
-          <div className="wa-form-group full">
-            <button className="wa-button">
-              Connect Number
-            </button>
-          </div>
-        </div>
-      </div>
-    </PageContainer>
-  );
-}
-
-function NumberStatus() {
-  return (
-    <PageContainer
-      title="Number Status"
-      description="Check the current status of WhatsApp numbers."
-    >
-      <div className="wa-section">
-        <table className="wa-table">
-          <thead>
-            <tr>
-              <th>Number</th>
-              <th>Status</th>
-              <th>Quality</th>
-              <th>Messaging</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr>
-              <td>+91 90000 11111</td>
-              <td>
-                <span className="wa-status">Active</span>
-              </td>
-              <td>High</td>
-              <td>Enabled</td>
-            </tr>
-
-            <tr>
-              <td>+91 90000 22222</td>
-              <td>
-                <span className="wa-status">Active</span>
-              </td>
-              <td>Medium</td>
-              <td>Enabled</td>
-            </tr>
-
-            <tr>
-              <td>+91 90000 33333</td>
-              <td>
-                <span className="wa-status warning">
-                  Pending
-                </span>
-              </td>
-              <td>-</td>
-              <td>Waiting</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </PageContainer>
-  );
-}
 
 function BusinessProfileOverview() {
   return (

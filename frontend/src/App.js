@@ -104,7 +104,13 @@ const Settings = lazy(() => import('./components/WhatsApp_Settings'));
 const AdminWhatsAppAccounts = lazy(() => import('./components/Admin_WhatsApp_WhatsAppAccounts'));
 const AdminWhatsAppCustomers = lazy(() => import('./components/Admin_WhatsApp_Customers'));
 const AdminWhatsAppMessages = lazy(() => import('./components/Admin_WhatsApp_Messages'));
+const AdminWhatsAppCampaigns = lazy(() => import('./components/Admin_WhatsApp_Campaigns'));
+const AdminWhatsAppTemplates = lazy(() => import('./components/Admin_WhatsApp_Templates'));
 const AdminWhatsAppAutomation = lazy(() => import('./components/Admin_WhatsApp_Automation'));
+const AdminWhatsAppSettings = lazy(() => import('./components/Admin_WhatsApp_Settings'));
+const AdminWhatsAppReports = lazy(() => import('./components/Admin_WhatsApp_Reports'));
+
+
 
 
 
@@ -337,8 +343,13 @@ function App() {
         <Route path="/admin/whatsapp/accounts" element={adminRoute('Admin WhatsApp Accounts', <AdminWhatsAppAccounts />)} />
         <Route path="/admin/whatsapp/customers" element={adminRoute('Admin WhatsApp Customers', <AdminWhatsAppCustomers />)} />
         <Route path="/admin/whatsapp/messages" element={adminRoute('Admin WhatsApp Messages', <AdminWhatsAppMessages />)} />
+        <Route path="/admin/whatsapp/campaigns" element={adminRoute('Admin WhatsApp Campaigns', <AdminWhatsAppCampaigns />)} />
+        <Route path="/admin/whatsapp/templates" element={adminRoute('Admin WhatsApp Templates', <AdminWhatsAppTemplates />)} />
         <Route path="/admin/whatsapp/automation" element={adminRoute('Admin WhatsApp Automation', <AdminWhatsAppAutomation />)} />
-        
+        <Route path="/admin/whatsapp/settings" element={adminRoute('Admin WhatsApp Settings', <AdminWhatsAppSettings />)} />
+        <Route path="/admin/whatsapp/reports" element={adminRoute('Admin WhatsApp Reports', <AdminWhatsAppReports />)} />
+
+
         {/* SMS Routes */}
         <Route path="/sms/send" element={adminRoute('SMS Send', <SMSSend />)} />
         <Route path="/sms/free-trial" element={privateRoute('Free Trial SMS', <FreeTrialSMS />)} />

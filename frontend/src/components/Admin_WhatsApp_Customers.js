@@ -1,11 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FaUsers,
   FaUserCheck,
   FaUserTimes,
   FaUserSlash,
   FaLayerGroup,
-  FaTags,
   FaUpload,
   FaDownload,
   FaSearch,
@@ -31,96 +30,91 @@ export default function Admin_WhatsApp_Customers() {
   const [activeSection, setActiveSection] = useState("customers");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [selectedTag, setSelectedTag] = useState(null);
-
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [managingGroupId, setManagingGroupId] = useState(null);
   const [manageMemberIds, setManageMemberIds] = useState([]);
 
-  const [customers, setCustomers] = useState([
-    {
-      id: 1,
-      name: "Rahul Sharma",
-      phone: "+91 9876543210",
-      email: "rahul@example.com",
-      city: "Hyderabad",
-      source: "WhatsApp",
-      status: "Active",
-      tags: ["Premium", "Product A"]
-    },
-    {
-      id: 2,
-      name: "Priya Reddy",
-      phone: "+91 9123456780",
-      email: "priya@example.com",
-      city: "Hyderabad",
-      source: "Website",
-      status: "Active",
-      tags: ["New Customer"]
-    },
-    {
-      id: 3,
-      name: "Arjun Kumar",
-      phone: "+91 9988776655",
-      email: "arjun@example.com",
-      city: "Bangalore",
-      source: "WhatsApp",
-      status: "Inactive",
-      tags: ["Product B"]
-    },
-    {
-      id: 4,
-      name: "Sneha Patel",
-      phone: "+91 9001122334",
-      email: "sneha@example.com",
-      city: "Mumbai",
-      source: "Facebook",
-      status: "Active",
-      tags: ["Premium"]
-    },
-    {
-      id: 5,
-      name: "Vikram Singh",
-      phone: "+91 9556677889",
-      email: "vikram@example.com",
-      city: "Delhi",
-      source: "Website",
-      status: "Inactive",
-      tags: ["Follow Up"]
-    },
-    {
-      id: 6,
-      name: "Ananya Rao",
-      phone: "+91 9445566778",
-      email: "ananya@example.com",
-      city: "Chennai",
-      source: "WhatsApp",
-      status: "Blocked",
-      tags: []
-    }
-  ]);
+  const [customers, setCustomers] = useState(() => {
+    const savedCustomers = localStorage.getItem(
+      "admin_whatsapp_customers"
+    );
 
-const uniqueCustomers = useMemo(() => {
-  const seenPhones = new Set();
-
-  return customers.filter((customer) => {
-    const phone = String(customer.phone || "").replace(/\D/g, "");
-
-    if (!phone) {
-      return true;
+    if (savedCustomers) {
+      try {
+        return JSON.parse(savedCustomers);
+      } catch (error) {
+        console.error(
+          "Failed to load saved customers:",
+          error
+        );
+      }
     }
 
-    if (seenPhones.has(phone)) {
-      return false;
-    }
-
-    seenPhones.add(phone);
-    return true;
+    return [
+      {
+        id: 1,
+        name: "Rahul Sharma",
+        phone: "+91 9876543210",
+        email: "rahul@example.com",
+        city: "Hyderabad",
+        source: "WhatsApp",
+        status: "Active"
+      },
+      {
+        id: 2,
+        name: "Priya Reddy",
+        phone: "+91 9123456780",
+        email: "priya@example.com",
+        city: "Hyderabad",
+        source: "Website",
+        status: "Active"
+      },
+      {
+        id: 3,
+        name: "Arjun Kumar",
+        phone: "+91 9988776655",
+        email: "arjun@example.com",
+        city: "Bangalore",
+        source: "WhatsApp",
+        status: "Inactive"
+      },
+      {
+        id: 4,
+        name: "Sneha Patel",
+        phone: "+91 9001122334",
+        email: "sneha@example.com",
+        city: "Mumbai",
+        source: "Facebook",
+        status: "Active"
+      },
+      {
+        id: 5,
+        name: "Vikram Singh",
+        phone: "+91 9556677889",
+        email: "vikram@example.com",
+        city: "Delhi",
+        source: "Website",
+        status: "Inactive"
+      },
+      {
+        id: 6,
+        name: "Ananya Rao",
+        phone: "+91 9445566778",
+        email: "ananya@example.com",
+        city: "Chennai",
+        source: "WhatsApp",
+        status: "Blocked"
+      }
+    ];
   });
-}, [customers]);
 
+  useEffect(() => {
+    localStorage.setItem(
+      "admin_whatsapp_customers",
+      JSON.stringify(customers)
+    );
+  }, [customers]);
 
   const [groups, setGroups] = useState([
     {
@@ -137,18 +131,8 @@ const uniqueCustomers = useMemo(() => {
     }
   ]);
 
-  const [tags, setTags] = useState([
-    "Premium",
-    "Product A",
-    "Product B",
-    "New Customer",
-    "Follow Up"
-  ]);
-
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [showCreateTag, setShowCreateTag] = useState(false);
-  const [showAssignTag, setShowAssignTag] = useState(false);
 
   const [newCustomer, setNewCustomer] = useState({
     name: "",
@@ -163,11 +147,6 @@ const uniqueCustomers = useMemo(() => {
     name: "",
     description: ""
   });
-
-  const [newTag, setNewTag] = useState("");
-
-  const [assignCustomerId, setAssignCustomerId] = useState("");
-  const [assignSelectedTags, setAssignSelectedTags] = useState([]);
 
   const totalCustomers = customers.length;
 
@@ -193,59 +172,14 @@ const uniqueCustomers = useMemo(() => {
         customer.email.toLowerCase().includes(search);
 
       const matchesStatus =
-        statusFilter === "All" ||
-        customer.status === statusFilter;
+        statusFilter === "All" || customer.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
   }, [customers, searchTerm, statusFilter]);
 
-  const tagCustomers = useMemo(() => {
-    if (!selectedTag) return [];
-
-    return customers.filter((customer) =>
-      customer.tags.includes(selectedTag)
-    );
-  }, [customers, selectedTag]);
-
-  const getSourceIcon = (source) => {
-    if (source === "WhatsApp") {
-      return <FaWhatsapp />;
-    }
-
-    if (source === "Facebook") {
-      return <FaFacebook />;
-    }
-
-    return <FaGlobe />;
-  };
-
-  const getStatusClass = (status) => {
-    if (status === "Active") {
-      return "status-active";
-    }
-
-    if (status === "Inactive") {
-      return "status-inactive";
-    }
-
-    return "status-blocked";
-  };
-
-  const clearSelections = () => {
-    setSelectedCustomer(null);
-    setSelectedTag(null);
-    setSelectedGroupId(null);
-    setManagingGroupId(null);
-    setManageMemberIds([]);
-  };
-
   const handleViewCustomer = (customer) => {
     setSelectedCustomer(customer);
-    setSelectedTag(null);
-    setSelectedGroupId(null);
-    setManagingGroupId(null);
-    setManageMemberIds([]);
   };
 
   const handleBlockCustomer = (id) => {
@@ -261,6 +195,12 @@ const uniqueCustomers = useMemo(() => {
       prev && prev.id === id
         ? { ...prev, status: "Blocked" }
         : prev
+    );
+  };
+
+  const handleDeleteCustomer = (id) => {
+    setCustomers((prevCustomers) =>
+      prevCustomers.filter((customer) => customer.id !== id)
     );
   };
 
@@ -281,14 +221,11 @@ const uniqueCustomers = useMemo(() => {
   };
 
   const handleAddCustomer = () => {
-    if (!newCustomer.name || !newCustomer.phone) {
-      return;
-    }
+    if (!newCustomer.name || !newCustomer.phone) return;
 
     const customer = {
       id: Date.now(),
-      ...newCustomer,
-      tags: []
+      ...newCustomer
     };
 
     setCustomers((prev) => [...prev, customer]);
@@ -306,9 +243,7 @@ const uniqueCustomers = useMemo(() => {
   };
 
   const handleCreateGroup = () => {
-    if (!newGroup.name.trim()) {
-      return;
-    }
+    if (!newGroup.name) return;
 
     setGroups((prev) => [
       ...prev,
@@ -333,7 +268,7 @@ const uniqueCustomers = useMemo(() => {
     setManagingGroupId(null);
     setManageMemberIds([]);
     setSelectedCustomer(null);
-    setSelectedTag(null);
+    setActiveSection("groups");
   };
 
   const handleManageMembers = (group) => {
@@ -341,31 +276,24 @@ const uniqueCustomers = useMemo(() => {
     setSelectedGroupId(null);
     setManageMemberIds(group.members);
     setSelectedCustomer(null);
-    setSelectedTag(null);
+    setActiveSection("groups");
   };
 
   const handleMemberCheckbox = (customerId) => {
-    setManageMemberIds((prev) => {
-      if (prev.includes(customerId)) {
-        return prev.filter((id) => id !== customerId);
-      }
-
-      return [...prev, customerId];
-    });
+    setManageMemberIds((prev) =>
+      prev.includes(customerId)
+        ? prev.filter((id) => id !== customerId)
+        : [...prev, customerId]
+    );
   };
 
   const handleSaveGroupMembers = () => {
-    if (!managingGroupId) {
-      return;
-    }
+    if (!managingGroupId) return;
 
     setGroups((prev) =>
       prev.map((group) =>
         group.id === managingGroupId
-          ? {
-              ...group,
-              members: manageMemberIds
-            }
+          ? { ...group, members: manageMemberIds }
           : group
       )
     );
@@ -389,643 +317,27 @@ const uniqueCustomers = useMemo(() => {
     }
   };
 
-  const handleCreateTag = () => {
-    const tag = newTag.trim();
-
-    if (!tag) {
-      return;
-    }
-
-    if (!tags.includes(tag)) {
-      setTags((prev) => [...prev, tag]);
-    }
-
-    setNewTag("");
-    setShowCreateTag(false);
-  };
-
-  const handleDeleteTag = (tag) => {
-    setTags((prev) =>
-      prev.filter((item) => item !== tag)
-    );
-
-    setCustomers((prev) =>
-      prev.map((customer) => ({
-        ...customer,
-        tags: customer.tags.filter(
-          (item) => item !== tag
-        )
-      }))
-    );
-
-    if (selectedTag === tag) {
-      setSelectedTag(null);
-    }
-  };
-
-  const handleTagClick = (tag) => {
-    setSelectedTag(tag);
-    setSelectedCustomer(null);
-    setSelectedGroupId(null);
-    setManagingGroupId(null);
-    setManageMemberIds([]);
-    setActiveSection("tags");
-    setSearchTerm("");
-    setStatusFilter("All");
-  };
-
-  const openAssignTag = () => {
-    setAssignCustomerId("");
-    setAssignSelectedTags([]);
-    setShowAssignTag(true);
-  };
-
-  const handleSelectCustomerForTags = (id) => {
-    setAssignCustomerId(id);
-
-    const customer = customers.find(
-      (item) => item.id === Number(id)
-    );
-
-    setAssignSelectedTags(
-      customer ? customer.tags : []
-    );
-  };
-
-  const handleTagCheckbox = (tag) => {
-    setAssignSelectedTags((prev) => {
-      if (prev.includes(tag)) {
-        return prev.filter((item) => item !== tag);
-      }
-
-      return [...prev, tag];
-    });
-  };
-
-  const handleSaveAssignedTags = () => {
-    if (!assignCustomerId) {
-      return;
-    }
-
-    const id = Number(assignCustomerId);
-
-    setCustomers((prev) =>
-      prev.map((customer) =>
-        customer.id === id
-          ? {
-              ...customer,
-              tags: assignSelectedTags
-            }
-          : customer
-      )
-    );
-
-    if (
-      selectedCustomer &&
-      selectedCustomer.id === id
-    ) {
-      setSelectedCustomer({
-        ...selectedCustomer,
-        tags: assignSelectedTags
-      });
-    }
-
-    setShowAssignTag(false);
-  };
-
-  const handleExport = () => {
-    const headers = [
-      "Name",
-      "Phone",
-      "Email",
-      "City",
-      "Source",
-      "Status",
-      "Tags"
-    ];
-
-    const rows = customers.map((customer) => [
-      customer.name,
-      customer.phone,
-      customer.email,
-      customer.city,
-      customer.source,
-      customer.status,
-      customer.tags.join("|")
-    ]);
-
-    const csv = [
-      headers.join(","),
-      ...rows.map((row) =>
-        row
-          .map((value) => `"${value}"`)
-          .join(",")
-      )
-    ].join("\n");
-
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;"
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = "customers.csv";
-    link.click();
-
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = (event) => {
-  const file = event.target.files[0];
-
-  if (!file) {
-    return;
-  }
-
-  const reader = new FileReader();
-
-  reader.onload = (e) => {
-    const text = e.target.result;
-
-    const lines = text
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line);
-
-    if (lines.length <= 1) {
-      alert("The CSV file does not contain any customer data.");
-      return;
-    }
-
-    const headers = lines[0]
-      .split(",")
-      .map((header) => header.replace(/"/g, "").trim().toLowerCase());
-
-    const nameIndex = headers.indexOf("name");
-    const phoneIndex = headers.indexOf("phone");
-    const emailIndex = headers.indexOf("email");
-    const cityIndex = headers.indexOf("city");
-    const sourceIndex = headers.indexOf("source");
-    const statusIndex = headers.indexOf("status");
-    const tagsIndex = headers.indexOf("tags");
-
-    if (phoneIndex === -1) {
-      alert("Phone column is required in the CSV file.");
-      return;
-    }
-
-    const importedCustomers = lines.slice(1).map((line) => {
-      const values = line
-        .split(",")
-        .map((value) => value.replace(/"/g, "").trim());
-
-      return {
-        name:
-          nameIndex !== -1 && values[nameIndex]
-            ? values[nameIndex]
-            : "Imported Customer",
-
-        phone:
-          phoneIndex !== -1 && values[phoneIndex]
-            ? values[phoneIndex]
-            : "",
-
-        email:
-          emailIndex !== -1 && values[emailIndex]
-            ? values[emailIndex]
-            : "",
-
-        city:
-          cityIndex !== -1 && values[cityIndex]
-            ? values[cityIndex]
-            : "",
-
-        source:
-          sourceIndex !== -1 && values[sourceIndex]
-            ? values[sourceIndex]
-            : "Imported",
-
-        status:
-          statusIndex !== -1 && values[statusIndex]
-            ? values[statusIndex]
-            : "Active",
-
-        tags:
-          tagsIndex !== -1 && values[tagsIndex]
-            ? values[tagsIndex]
-                .split("|")
-                .map((tag) => tag.trim())
-                .filter((tag) => tag)
-            : []
-      };
-    });
-
-    setCustomers((prevCustomers) => {
-      const existingPhones = new Set(
-        prevCustomers.map((customer) =>
-          String(customer.phone || "").replace(/\D/g, "")
-        )
-      );
-
-      const newCustomers = [];
-
-      importedCustomers.forEach((customer) => {
-        const normalizedPhone = String(customer.phone || "").replace(
-          /\D/g,
-          ""
-        );
-
-        if (!normalizedPhone) {
-          return;
-        }
-
-        if (existingPhones.has(normalizedPhone)) {
-          return;
-        }
-
-        const newCustomer = {
-          ...customer,
-          id: Date.now() + newCustomers.length
-        };
-
-        newCustomers.push(newCustomer);
-        existingPhones.add(normalizedPhone);
-      });
-
-      if (newCustomers.length === 0) {
-        alert("All customers in the CSV already exist.");
-        return prevCustomers;
-      }
-
-      alert(
-        `${newCustomers.length} new customer(s) imported successfully.`
-      );
-
-      return [...prevCustomers, ...newCustomers];
-    });
-
-    event.target.value = "";
-  };
-
-  reader.readAsText(file);
-};
-  const renderCustomerTable = (customerList) => {
-    const uniqueCustomers = [];
-const seenPhones = new Set();
-
-customerList.forEach((customer) => {
-  const phone = String(customer.phone || "").replace(/\D/g, "");
-
-  if (!seenPhones.has(phone)) {
-    seenPhones.add(phone);
-    uniqueCustomers.push(customer);
-  }
-});
-    return (
-      <div className="customer-table-wrapper">
-        <table className="customer-table">
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Contact</th>
-              <th>Location</th>
-              <th>Source</th>
-              <th>Status</th>
-              <th>Tags</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {uniqueCustomers.length > 0 ? (
-              uniqueCustomers.map((customer) => (
-                <tr key={customer.id}>
-                  <td>
-                    <div className="customer-name-cell">
-                      <div className="customer-avatar">
-                        {customer.name
-                          .charAt(0)
-                          .toUpperCase()}
-                      </div>
-
-                      <div>
-                        <strong>
-                          {customer.name}
-                        </strong>
-
-                        <span>
-                          Customer ID: #{customer.id}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td>
-                    <div className="contact-cell">
-                      <span>
-                        <FaPhone />
-                        {customer.phone}
-                      </span>
-
-                      <span>
-                        <FaEnvelope />
-                        {customer.email}
-                      </span>
-                    </div>
-                  </td>
-
-                  <td>
-                    <span className="location-cell">
-                      <FaMapMarkerAlt />
-                      {customer.city}
-                    </span>
-                  </td>
-
-                  <td>
-                    <span className="source-cell">
-                      {getSourceIcon(customer.source)}
-                      {customer.source}
-                    </span>
-                  </td>
-
-                  <td>
-                    <span
-                      className={`status-badge ${getStatusClass(
-                        customer.status
-                      )}`}
-                    >
-                      {customer.status}
-                    </span>
-                  </td>
-
-                  <td>
-                    <div className="table-tags">
-                      {customer.tags.length > 0 ? (
-                        customer.tags.map((tag) => (
-                          <button
-                            key={tag}
-                            className="mini-tag"
-                            onClick={() =>
-                              handleTagClick(tag)
-                            }
-                          >
-                            {tag}
-                          </button>
-                        ))
-                      ) : (
-                        <span className="no-tags">
-                          No Tags
-                        </span>
-                      )}
-                    </div>
-                  </td>
-
-                  <td>
-                    <button
-                      className="view-button"
-                      onClick={() =>
-                        handleViewCustomer(customer)
-                      }
-                    >
-                      <FaEye />
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="7">
-                  <div className="empty-state">
-                    <FaUsers />
-
-                    <h3>No customers found</h3>
-
-                    <p>
-                      There are no customers matching
-                      your selection.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  const renderCustomerProfile = () => {
-    if (!selectedCustomer) {
-      return null;
-    }
-
-    return (
-      <div className="profile-page">
-        <button
-          className="back-button"
-          onClick={() =>
-            setSelectedCustomer(null)
-          }
-        >
-          <FaArrowLeft />
-          Back
-        </button>
-
-        <div className="profile-card">
-          <div className="profile-top">
-            <div className="large-avatar">
-              {selectedCustomer.name
-                .charAt(0)
-                .toUpperCase()}
-            </div>
-
-            <div className="profile-main">
-              <h2>{selectedCustomer.name}</h2>
-
-              <span
-                className={`status-badge ${getStatusClass(
-                  selectedCustomer.status
-                )}`}
-              >
-                {selectedCustomer.status}
-              </span>
-
-              <p>
-                Customer ID: #{selectedCustomer.id}
-              </p>
-            </div>
-
-            <div className="profile-actions">
-              {selectedCustomer.status ===
-              "Blocked" ? (
-                <button
-                  className="unblock-button"
-                  onClick={() =>
-                    handleUnblockCustomer(
-                      selectedCustomer.id
-                    )
-                  }
-                >
-                  <FaUnlock />
-                  Unblock Customer
-                </button>
-              ) : (
-                <button
-                  className="block-button"
-                  onClick={() =>
-                    handleBlockCustomer(
-                      selectedCustomer.id
-                    )
-                  }
-                >
-                  <FaBan />
-                  Block Customer
-                </button>
-              )}
-
-              <button
-                className="assign-button"
-                onClick={() => {
-                  setAssignCustomerId(
-                    selectedCustomer.id
-                  );
-                  setAssignSelectedTags(
-                    selectedCustomer.tags
-                  );
-                  setShowAssignTag(true);
-                }}
-              >
-                <FaTags />
-                Manage Tags
-              </button>
-            </div>
-          </div>
-
-          <div className="profile-details">
-            <div className="detail-box">
-              <FaPhone />
-
-              <div>
-                <span>Phone Number</span>
-                <strong>
-                  {selectedCustomer.phone}
-                </strong>
-              </div>
-            </div>
-
-            <div className="detail-box">
-              <FaEnvelope />
-
-              <div>
-                <span>Email Address</span>
-                <strong>
-                  {selectedCustomer.email}
-                </strong>
-              </div>
-            </div>
-
-            <div className="detail-box">
-              <FaMapMarkerAlt />
-
-              <div>
-                <span>City</span>
-                <strong>
-                  {selectedCustomer.city}
-                </strong>
-              </div>
-            </div>
-
-            <div className="detail-box">
-              {getSourceIcon(
-                selectedCustomer.source
-              )}
-
-              <div>
-                <span>Customer Source</span>
-                <strong>
-                  {selectedCustomer.source}
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          <div className="profile-section">
-            <div className="section-title">
-              <FaTags />
-              <h3>Assigned Tags</h3>
-            </div>
-
-            {selectedCustomer.tags.length > 0 ? (
-              <div className="profile-tags">
-                {selectedCustomer.tags.map(
-                  (tag) => (
-                    <button
-                      key={tag}
-                      className="profile-tag"
-                      onClick={() =>
-                        handleTagClick(tag)
-                      }
-                    >
-                      <FaTags />
-                      {tag}
-                    </button>
-                  )
-                )}
-              </div>
-            ) : (
-              <p className="no-tags-text">
-                No tags assigned to this customer.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderGroupDetails = () => {
     const group = groups.find(
       (item) => item.id === selectedGroupId
     );
 
     if (!group) {
-      return (
-        <div className="empty-state">
-          <FaLayerGroup />
-
-          <h3>Group not found</h3>
-
-          <button
-            className="primary-button"
-            onClick={() =>
-              setSelectedGroupId(null)
-            }
-          >
-            <FaArrowLeft />
-            Back to Groups
-          </button>
-        </div>
-      );
+      setSelectedGroupId(null);
+      return null;
     }
 
-    const groupMembers = customers.filter(
-      (customer) =>
-        group.members.includes(customer.id)
+    const groupMembers = customers.filter((customer) =>
+      group.members.includes(customer.id)
     );
 
     return (
       <div className="group-details-page">
         <button
           className="back-button"
-          onClick={() =>
-            setSelectedGroupId(null)
-          }
+          onClick={() => setSelectedGroupId(null)}
         >
-          <FaArrowLeft />
-          Back to Groups
+          <FaArrowLeft /> Back to Groups
         </button>
 
         <div className="group-detail-header">
@@ -1035,7 +347,6 @@ customerList.forEach((customer) => {
 
           <div className="group-detail-heading">
             <h2>{group.name}</h2>
-
             <p>
               {group.description ||
                 "No group description provided."}
@@ -1044,9 +355,7 @@ customerList.forEach((customer) => {
 
           <div className="group-detail-count">
             <FaUsers />
-            <strong>
-              {groupMembers.length}
-            </strong>
+            <strong>{groupMembers.length}</strong>
             <span>Members</span>
           </div>
         </div>
@@ -1055,21 +364,16 @@ customerList.forEach((customer) => {
           <div className="group-detail-section-header">
             <div>
               <h3>Group Members</h3>
-
               <p>
-                Customers currently included in
-                this group.
+                Customers currently included in this group.
               </p>
             </div>
 
             <button
               className="primary-button"
-              onClick={() =>
-                handleManageMembers(group)
-              }
+              onClick={() => handleManageMembers(group)}
             >
-              <FaUserPlus />
-              Manage Members
+              <FaUserPlus /> Manage Members
             </button>
           </div>
 
@@ -1088,10 +392,7 @@ customerList.forEach((customer) => {
                     </div>
 
                     <div>
-                      <strong>
-                        {customer.name}
-                      </strong>
-
+                      <strong>{customer.name}</strong>
                       <span>
                         Customer ID: #{customer.id}
                       </span>
@@ -1100,19 +401,16 @@ customerList.forEach((customer) => {
 
                   <div className="group-member-contact">
                     <span>
-                      <FaPhone />
-                      {customer.phone}
+                      <FaPhone /> {customer.phone}
                     </span>
 
                     <span>
-                      <FaEnvelope />
-                      {customer.email}
+                      <FaEnvelope /> {customer.email}
                     </span>
                   </div>
 
                   <span className="location-cell">
-                    <FaMapMarkerAlt />
-                    {customer.city}
+                    <FaMapMarkerAlt /> {customer.city}
                   </span>
 
                   <span
@@ -1126,26 +424,21 @@ customerList.forEach((customer) => {
                   <button
                     className="view-button"
                     onClick={() =>
-                      handleViewCustomer(
-                        customer
-                      )
+                      handleViewCustomer(customer)
                     }
                   >
-                    <FaEye />
-                    View
+                    <FaEye /> View
                   </button>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="group-empty">
+            <div className="empty-state group-empty">
               <FaUsers />
-
-              <h3>No Members</h3>
-
+              <h3>No Members in This Group</h3>
               <p>
-                This group does not have any
-                customers yet.
+                Add customers using the Manage Members
+                option.
               </p>
 
               <button
@@ -1154,8 +447,7 @@ customerList.forEach((customer) => {
                   handleManageMembers(group)
                 }
               >
-                <FaUserPlus />
-                Add Members
+                <FaUserPlus /> Add Members
               </button>
             </div>
           )}
@@ -1170,24 +462,9 @@ customerList.forEach((customer) => {
     );
 
     if (!group) {
-      return (
-        <div className="empty-state">
-          <FaLayerGroup />
-
-          <h3>Group not found</h3>
-
-          <button
-            className="primary-button"
-            onClick={() => {
-              setManagingGroupId(null);
-              setManageMemberIds([]);
-            }}
-          >
-            <FaArrowLeft />
-            Back to Groups
-          </button>
-        </div>
-      );
+      setManagingGroupId(null);
+      setManageMemberIds([]);
+      return null;
     }
 
     return (
@@ -1199,21 +476,22 @@ customerList.forEach((customer) => {
             setManageMemberIds([]);
           }}
         >
-          <FaArrowLeft />
-          Back to Groups
+          <FaArrowLeft /> Back to Groups
         </button>
 
         <div className="manage-members-header">
           <div>
             <h2>Manage Members</h2>
             <p>{group.name}</p>
+            <span>
+              {group.description ||
+                "No group description provided."}
+            </span>
           </div>
 
           <div className="selected-member-count">
             <FaUsers />
-            <strong>
-              {manageMemberIds.length}
-            </strong>
+            <strong>{manageMemberIds.length}</strong>
             <span>Selected</span>
           </div>
         </div>
@@ -1222,21 +500,19 @@ customerList.forEach((customer) => {
           <div className="manage-members-top">
             <div>
               <h3>Select Customers</h3>
-
               <p>
-                Select the customers who should
-                belong to this group.
+                Choose which customers should belong to
+                this group.
               </p>
             </div>
 
             <div className="member-selection-actions">
               <button
-                type="button"
+                className="secondary-button"
                 onClick={() =>
                   setManageMemberIds(
                     customers.map(
-                      (customer) =>
-                        customer.id
+                      (customer) => customer.id
                     )
                   )
                 }
@@ -1245,10 +521,8 @@ customerList.forEach((customer) => {
               </button>
 
               <button
-                type="button"
-                onClick={() =>
-                  setManageMemberIds([])
-                }
+                className="cancel-button"
+                onClick={() => setManageMemberIds([])}
               >
                 Clear All
               </button>
@@ -1256,7 +530,7 @@ customerList.forEach((customer) => {
           </div>
 
           <div className="member-checkbox-list">
-            {uniqueCustomers.map((customer) => (
+            {customers.map((customer) => (
               <label
                 className="member-checkbox-row"
                 key={customer.id}
@@ -1267,9 +541,7 @@ customerList.forEach((customer) => {
                     customer.id
                   )}
                   onChange={() =>
-                    handleMemberCheckbox(
-                      customer.id
-                    )
+                    handleMemberCheckbox(customer.id)
                   }
                 />
 
@@ -1280,23 +552,14 @@ customerList.forEach((customer) => {
                 </div>
 
                 <div className="member-checkbox-info">
-                  <strong>
-                    {customer.name}
-                  </strong>
-
-                  <span>
-                    {customer.phone}
-                  </span>
-
-                  <span>
-                    {customer.email}
-                  </span>
+                  <strong>{customer.name}</strong>
+                  <span>{customer.phone}</span>
+                  <small>{customer.email}</small>
                 </div>
 
-                <span className="member-checkbox-location">
-                  <FaMapMarkerAlt />
-                  {customer.city}
-                </span>
+                <div className="member-checkbox-location">
+                  <FaMapMarkerAlt /> {customer.city}
+                </div>
 
                 <span
                   className={`status-badge ${getStatusClass(
@@ -1324,9 +587,373 @@ customerList.forEach((customer) => {
               className="primary-button"
               onClick={handleSaveGroupMembers}
             >
-              <FaCheckCircle />
-              Save Changes
+              <FaCheckCircle /> Save Changes
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const handleExport = () => {
+    const headers = [
+      "Name",
+      "Phone",
+      "Email",
+      "City",
+      "Source",
+      "Status"
+    ];
+
+    const rows = customers.map((customer) => [
+      customer.name,
+      customer.phone,
+      customer.email,
+      customer.city,
+      customer.source,
+      customer.status
+    ]);
+
+    const csv = [
+      headers.join(","),
+      ...rows.map((row) =>
+        row.map((value) => `"${value}"`).join(",")
+      )
+    ].join("\n");
+
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "customers.csv";
+    link.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const rows = text.split("\n").filter((row) => row.trim());
+
+      const existingNumbers = new Set(
+        customers.map((customer) =>
+          String(customer.phone || "").replace(/\D/g, "")
+        )
+      );
+
+      const importedNumbers = new Set();
+      const importedCustomers = [];
+
+      rows.slice(1).forEach((row, index) => {
+        const columns = row
+          .split(",")
+          .map((item) => item.trim());
+
+        const name = columns[0] || "";
+        const phone = columns[1] || "";
+        const email = columns[2] || "";
+        const location = columns[3] || "";
+        const source = columns[4] || "";
+
+        const normalizedPhone = phone.replace(/\D/g, "");
+
+        if (!normalizedPhone) return;
+
+        if (
+          existingNumbers.has(normalizedPhone) ||
+          importedNumbers.has(normalizedPhone)
+        ) {
+          return;
+        }
+
+        importedNumbers.add(normalizedPhone);
+
+        importedCustomers.push({
+          id: Date.now() + index,
+          name,
+          phone,
+          email,
+          location,
+          source,
+          status: "Active",
+          groups: []
+        });
+      });
+
+      if (importedCustomers.length > 0) {
+        setCustomers((prev) => [
+          ...prev,
+          ...importedCustomers
+        ]);
+      }
+
+      const skippedCount =
+        rows.slice(1).filter((row) => row.trim()).length -
+        importedCustomers.length;
+
+      if (skippedCount > 0) {
+        alert(
+          `${importedCustomers.length} customer(s) imported successfully. ${skippedCount} duplicate customer(s) were skipped.`
+        );
+      } else {
+        alert(
+          `${importedCustomers.length} customer(s) imported successfully.`
+        );
+      }
+    };
+
+    reader.readAsText(file);
+
+    event.target.value = "";
+  };
+
+  const getSourceIcon = (source) => {
+    if (source === "WhatsApp") {
+      return <FaWhatsapp />;
+    }
+
+    if (source === "Facebook") {
+      return <FaFacebook />;
+    }
+
+    return <FaGlobe />;
+  };
+
+  const getStatusClass = (status) => {
+    if (status === "Active") return "status-active";
+    if (status === "Inactive") return "status-inactive";
+    return "status-blocked";
+  };
+
+  const renderCustomerTable = (customerList) => {
+    return (
+      <div className="customer-table-wrapper">
+        <table className="customer-table">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Contact</th>
+              <th>Location</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Action</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {customerList.length > 0 ? (
+              customerList.map((customer) => (
+                <tr key={customer.id}>
+                  <td>
+                    <div className="customer-name-cell">
+                      <div className="customer-avatar">
+                        {customer.name
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
+
+                      <div>
+                        <strong>{customer.name}</strong>
+                        <span>
+                          Customer ID: #{customer.id}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td>
+                    <div className="contact-cell">
+                      <span>
+                        <FaPhone /> {customer.phone}
+                      </span>
+
+                      <span>
+                        <FaEnvelope /> {customer.email}
+                      </span>
+                    </div>
+                  </td>
+
+                  <td>
+                    <span className="location-cell">
+                      <FaMapMarkerAlt /> {customer.city}
+                    </span>
+                  </td>
+
+                  <td>
+                    <span className="source-cell">
+                      {getSourceIcon(customer.source)}
+                      {customer.source}
+                    </span>
+                  </td>
+
+                  <td>
+                    <span
+                      className={`status-badge ${getStatusClass(
+                        customer.status
+                      )}`}
+                    >
+                      {customer.status}
+                    </span>
+                  </td>
+
+                  <td>
+                    <button
+                      className="view-button"
+                      onClick={() =>
+                        handleViewCustomer(customer)
+                      }
+                    >
+                      <FaEye /> View
+                    </button>
+                  </td>
+
+                  <td>
+                    <button
+                      className="delete-button"
+                      onClick={() =>
+                        handleDeleteCustomer(customer.id)
+                      }
+                      title="Delete Customer"
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="7">
+                  <div className="empty-state">
+                    <FaUsers />
+                    <h3>No customers found</h3>
+                    <p>
+                      There are no customers matching
+                      your selection.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderCustomerProfile = () => {
+    if (!selectedCustomer) return null;
+
+    return (
+      <div className="profile-page">
+        <button
+          className="back-button"
+          onClick={() => setSelectedCustomer(null)}
+        >
+          <FaArrowLeft /> Back
+        </button>
+
+        <div className="profile-card">
+          <div className="profile-top">
+            <div className="large-avatar">
+              {selectedCustomer.name
+                .charAt(0)
+                .toUpperCase()}
+            </div>
+
+            <div className="profile-main">
+              <h2>{selectedCustomer.name}</h2>
+
+              <span
+                className={`status-badge ${getStatusClass(
+                  selectedCustomer.status
+                )}`}
+              >
+                {selectedCustomer.status}
+              </span>
+
+              <p>
+                Customer ID: #{selectedCustomer.id}
+              </p>
+            </div>
+
+            <div className="profile-actions">
+              {selectedCustomer.status === "Blocked" ? (
+                <button
+                  className="unblock-button"
+                  onClick={() =>
+                    handleUnblockCustomer(
+                      selectedCustomer.id
+                    )
+                  }
+                >
+                  <FaUnlock /> Unblock Customer
+                </button>
+              ) : (
+                <button
+                  className="block-button"
+                  onClick={() =>
+                    handleBlockCustomer(
+                      selectedCustomer.id
+                    )
+                  }
+                >
+                  <FaBan /> Block Customer
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="profile-details">
+            <div className="detail-box">
+              <FaPhone />
+              <div>
+                <span>Phone Number</span>
+                <strong>
+                  {selectedCustomer.phone}
+                </strong>
+              </div>
+            </div>
+
+            <div className="detail-box">
+              <FaEnvelope />
+              <div>
+                <span>Email Address</span>
+                <strong>
+                  {selectedCustomer.email}
+                </strong>
+              </div>
+            </div>
+
+            <div className="detail-box">
+              <FaMapMarkerAlt />
+              <div>
+                <span>City</span>
+                <strong>
+                  {selectedCustomer.city}
+                </strong>
+              </div>
+            </div>
+
+            <div className="detail-box">
+              {getSourceIcon(selectedCustomer.source)}
+              <div>
+                <span>Customer Source</span>
+                <strong>
+                  {selectedCustomer.source}
+                </strong>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1339,7 +966,6 @@ customerList.forEach((customer) => {
         <div className="section-header">
           <div>
             <h2>All Customers</h2>
-
             <p>
               Manage and view all your customers.
             </p>
@@ -1351,8 +977,7 @@ customerList.forEach((customer) => {
               setShowAddCustomer(true)
             }
           >
-            <FaPlus />
-            Add Customer
+            <FaPlus /> Add Customer
           </button>
         </div>
 
@@ -1436,28 +1061,15 @@ customerList.forEach((customer) => {
                 setStatusFilter(e.target.value)
               }
             >
-              <option value="All">
-                All Status
-              </option>
-
-              <option value="Active">
-                Active
-              </option>
-
-              <option value="Inactive">
-                Inactive
-              </option>
-
-              <option value="Blocked">
-                Blocked
-              </option>
+              <option value="All">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Blocked">Blocked</option>
             </select>
           </div>
         </div>
 
-        {renderCustomerTable(
-          filteredCustomers
-        )}
+        {renderCustomerTable(filteredCustomers)}
       </div>
     );
   };
@@ -1468,10 +1080,9 @@ customerList.forEach((customer) => {
         <div className="section-header">
           <div>
             <h2>Customer Groups</h2>
-
             <p>
-              Organize customers into internal
-              lists based on common interests or
+              Organize customers into internal lists
+              based on common interests or
               requirements.
             </p>
           </div>
@@ -1482,8 +1093,7 @@ customerList.forEach((customer) => {
               setShowCreateGroup(true)
             }
           >
-            <FaPlus />
-            Create Group
+            <FaPlus /> Create Group
           </button>
         </div>
 
@@ -1498,7 +1108,6 @@ customerList.forEach((customer) => {
               </div>
 
               <h3>{group.name}</h3>
-
               <p>{group.description}</p>
 
               <div className="group-members">
@@ -1512,8 +1121,7 @@ customerList.forEach((customer) => {
                     handleViewGroup(group)
                   }
                 >
-                  <FaEye />
-                  View Group
+                  <FaEye /> View Group
                 </button>
 
                 <button
@@ -1521,16 +1129,13 @@ customerList.forEach((customer) => {
                     handleManageMembers(group)
                   }
                 >
-                  <FaUserPlus />
-                  Manage Members
+                  <FaUserPlus /> Manage Members
                 </button>
 
                 <button
                   className="delete-group"
                   onClick={() =>
-                    handleDeleteGroup(
-                      group.id
-                    )
+                    handleDeleteGroup(group.id)
                   }
                 >
                   <FaTrash />
@@ -1538,161 +1143,6 @@ customerList.forEach((customer) => {
               </div>
             </div>
           ))}
-
-          {groups.length === 0 && (
-            <div className="empty-state">
-              <FaLayerGroup />
-
-              <h3>No Groups</h3>
-
-              <p>
-                Create a customer group to organize
-                your customers.
-              </p>
-
-              <button
-                className="primary-button"
-                onClick={() =>
-                  setShowCreateGroup(true)
-                }
-              >
-                <FaPlus />
-                Create Group
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderTags = () => {
-    if (selectedTag) {
-      return (
-        <div className="tag-details-page">
-          <button
-            className="back-button"
-            onClick={() =>
-              setSelectedTag(null)
-            }
-          >
-            <FaArrowLeft />
-            Back to Tags
-          </button>
-
-          <div className="tag-detail-header">
-            <div className="tag-detail-icon">
-              <FaTags />
-            </div>
-
-            <div>
-              <h2>{selectedTag}</h2>
-
-              <p>
-                {tagCustomers.length} customers
-                assigned to this tag
-              </p>
-            </div>
-          </div>
-
-          <div className="tag-table-area">
-            {renderCustomerTable(
-              tagCustomers
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="tags-content">
-        <div className="section-header">
-          <div>
-            <h2>Tags</h2>
-
-            <p>
-              Click a tag to view the customers
-              assigned to it.
-            </p>
-          </div>
-
-          <div className="header-actions">
-            <button
-              className="secondary-button"
-              onClick={openAssignTag}
-            >
-              <FaUserPlus />
-              Assign Tags
-            </button>
-
-            <button
-              className="primary-button"
-              onClick={() =>
-                setShowCreateTag(true)
-              }
-            >
-              <FaPlus />
-              Create Tag
-            </button>
-          </div>
-        </div>
-
-        <div className="tags-grid">
-          {tags.map((tag) => {
-            const count = customers.filter(
-              (customer) =>
-                customer.tags.includes(tag)
-            ).length;
-
-            return (
-              <div
-                className="tag-card"
-                key={tag}
-                onClick={() =>
-                  handleTagClick(tag)
-                }
-              >
-                <div className="tag-icon">
-                  <FaTags />
-                </div>
-
-                <div className="tag-card-content">
-                  <h3>{tag}</h3>
-
-                  <p>
-                    {count}{" "}
-                    {count === 1
-                      ? "customer"
-                      : "customers"}
-                  </p>
-                </div>
-
-                <button
-                  className="tag-delete"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleDeleteTag(tag);
-                  }}
-                >
-                  <FaTrash />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="tag-info">
-          <FaTags />
-
-          <div>
-            <h3>How Tags Work</h3>
-
-            <p>
-              Tags are labels assigned to
-              customers. Click a tag to see all
-              customers carrying that tag.
-            </p>
-          </div>
         </div>
       </div>
     );
@@ -1704,7 +1154,6 @@ customerList.forEach((customer) => {
         <div className="section-header">
           <div>
             <h2>Import / Export</h2>
-
             <p>
               Import customer data or export your
               current customers.
@@ -1719,15 +1168,13 @@ customerList.forEach((customer) => {
             </div>
 
             <h3>Import Customers</h3>
-
             <p>
               Upload a CSV file containing your
               customer information.
             </p>
 
             <label className="upload-button">
-              <FaUpload />
-              Choose CSV File
+              <FaUpload /> Choose CSV File
 
               <input
                 type="file"
@@ -1743,18 +1190,16 @@ customerList.forEach((customer) => {
             </div>
 
             <h3>Export Customers</h3>
-
             <p>
-              Download all customer information as
-              a CSV file.
+              Download all customer information as a
+              CSV file.
             </p>
 
             <button
               className="primary-button"
               onClick={handleExport}
             >
-              <FaDownload />
-              Export CSV
+              <FaDownload /> Export CSV
             </button>
           </div>
         </div>
@@ -1764,8 +1209,7 @@ customerList.forEach((customer) => {
 
   const renderBlockedCustomers = () => {
     const blocked = customers.filter(
-      (customer) =>
-        customer.status === "Blocked"
+      (customer) => customer.status === "Blocked"
     );
 
     return (
@@ -1773,10 +1217,9 @@ customerList.forEach((customer) => {
         <div className="section-header">
           <div>
             <h2>Blocked Customers</h2>
-
             <p>
-              View and manage customers who have
-              been blocked.
+              View and manage customers who have been
+              blocked.
             </p>
           </div>
         </div>
@@ -1796,11 +1239,10 @@ customerList.forEach((customer) => {
 
                 <div className="blocked-info">
                   <h3>{customer.name}</h3>
-
                   <p>{customer.phone}</p>
 
                   <span>
-                    <FaMapMarkerAlt />
+                    <FaMapMarkerAlt />{" "}
                     {customer.city}
                   </span>
                 </div>
@@ -1809,13 +1251,10 @@ customerList.forEach((customer) => {
                   <button
                     className="view-button"
                     onClick={() =>
-                      handleViewCustomer(
-                        customer
-                      )
+                      handleViewCustomer(customer)
                     }
                   >
-                    <FaEye />
-                    View
+                    <FaEye /> View
                   </button>
 
                   <button
@@ -1826,8 +1265,7 @@ customerList.forEach((customer) => {
                       )
                     }
                   >
-                    <FaUnlock />
-                    Unblock
+                    <FaUnlock /> Unblock
                   </button>
                 </div>
               </div>
@@ -1836,9 +1274,7 @@ customerList.forEach((customer) => {
         ) : (
           <div className="empty-state blocked-empty">
             <FaCheckCircle />
-
             <h3>No Blocked Customers</h3>
-
             <p>
               There are currently no blocked
               customers.
@@ -1870,10 +1306,6 @@ customerList.forEach((customer) => {
       return renderGroups();
     }
 
-    if (activeSection === "tags") {
-      return renderTags();
-    }
-
     if (activeSection === "import-export") {
       return renderImportExport();
     }
@@ -1895,9 +1327,7 @@ customerList.forEach((customer) => {
 
           <div>
             <h2>Customers</h2>
-            <span>
-              WhatsApp Management
-            </span>
+            <span>WhatsApp Management</span>
           </div>
         </div>
 
@@ -1910,7 +1340,7 @@ customerList.forEach((customer) => {
             }
             onClick={() => {
               setActiveSection("customers");
-              clearSelections();
+              setSelectedCustomer(null);
             }}
           >
             <FaUsers />
@@ -1925,26 +1355,11 @@ customerList.forEach((customer) => {
             }
             onClick={() => {
               setActiveSection("groups");
-              clearSelections();
+              setSelectedCustomer(null);
             }}
           >
             <FaLayerGroup />
             <span>Customer Groups</span>
-          </button>
-
-          <button
-            className={
-              activeSection === "tags"
-                ? "sidebar-item active"
-                : "sidebar-item"
-            }
-            onClick={() => {
-              setActiveSection("tags");
-              clearSelections();
-            }}
-          >
-            <FaTags />
-            <span>Tags</span>
           </button>
 
           <button
@@ -1955,7 +1370,7 @@ customerList.forEach((customer) => {
             }
             onClick={() => {
               setActiveSection("import-export");
-              clearSelections();
+              setSelectedCustomer(null);
             }}
           >
             <FaUpload />
@@ -1970,7 +1385,7 @@ customerList.forEach((customer) => {
             }
             onClick={() => {
               setActiveSection("blocked");
-              clearSelections();
+              setSelectedCustomer(null);
             }}
           >
             <FaUserSlash />
@@ -1989,7 +1404,6 @@ customerList.forEach((customer) => {
             <div className="modal-header">
               <div>
                 <h2>Add Customer</h2>
-
                 <p>
                   Add a new customer to your list.
                 </p>
@@ -2122,8 +1536,7 @@ customerList.forEach((customer) => {
                 className="primary-button"
                 onClick={handleAddCustomer}
               >
-                <FaPlus />
-                Add Customer
+                <FaPlus /> Add Customer
               </button>
             </div>
           </div>
@@ -2136,7 +1549,6 @@ customerList.forEach((customer) => {
             <div className="modal-header">
               <div>
                 <h2>Create Customer Group</h2>
-
                 <p>
                   Create an internal customer
                   organization list.
@@ -2177,8 +1589,7 @@ customerList.forEach((customer) => {
                 onChange={(e) =>
                   setNewGroup({
                     ...newGroup,
-                    description:
-                      e.target.value
+                    description: e.target.value
                   })
                 }
                 placeholder="Enter group description"
@@ -2199,169 +1610,7 @@ customerList.forEach((customer) => {
                 className="primary-button"
                 onClick={handleCreateGroup}
               >
-                <FaPlus />
-                Create Group
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showCreateTag && (
-        <div className="modal-overlay">
-          <div className="modal small-modal">
-            <div className="modal-header">
-              <div>
-                <h2>Create Tag</h2>
-
-                <p>
-                  Create a new customer label.
-                </p>
-              </div>
-
-              <button
-                className="close-button"
-                onClick={() =>
-                  setShowCreateTag(false)
-                }
-              >
-                <FaTimes />
-              </button>
-            </div>
-
-            <div className="form-group">
-              <label>Tag Name</label>
-
-              <input
-                type="text"
-                value={newTag}
-                onChange={(e) =>
-                  setNewTag(e.target.value)
-                }
-                placeholder="Example: Interested"
-              />
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="cancel-button"
-                onClick={() =>
-                  setShowCreateTag(false)
-                }
-              >
-                Cancel
-              </button>
-
-              <button
-                className="primary-button"
-                onClick={handleCreateTag}
-              >
-                <FaPlus />
-                Create Tag
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAssignTag && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <div>
-                <h2>Assign Tags</h2>
-
-                <p>
-                  Select a customer and assign one
-                  or more tags.
-                </p>
-              </div>
-
-              <button
-                className="close-button"
-                onClick={() =>
-                  setShowAssignTag(false)
-                }
-              >
-                <FaTimes />
-              </button>
-            </div>
-
-            <div className="form-group">
-              <label>Select Customer</label>
-
-              <select
-                value={assignCustomerId}
-                onChange={(e) =>
-                  handleSelectCustomerForTags(
-                    e.target.value
-                  )
-                }
-              >
-                <option value="">
-                  Select customer
-                </option>
-
-                {customers.map((customer) => (
-                  <option
-                    key={customer.id}
-                    value={customer.id}
-                  >
-                    {customer.name} -{" "}
-                    {customer.phone}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="assign-tags-section">
-              <label>Select Tags</label>
-
-              <div className="checkbox-tags">
-                {tags.map((tag) => (
-                  <label
-                    className="checkbox-tag"
-                    key={tag}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={assignSelectedTags.includes(
-                        tag
-                      )}
-                      onChange={() =>
-                        handleTagCheckbox(tag)
-                      }
-                      disabled={
-                        !assignCustomerId
-                      }
-                    />
-
-                    <span>
-                      <FaTags />
-                      {tag}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="cancel-button"
-                onClick={() =>
-                  setShowAssignTag(false)
-                }
-              >
-                Cancel
-              </button>
-
-              <button
-                className="primary-button"
-                onClick={handleSaveAssignedTags}
-                disabled={!assignCustomerId}
-              >
-                <FaCheckCircle />
-                Save Tags
+                <FaPlus /> Create Group
               </button>
             </div>
           </div>
@@ -2517,14 +1766,13 @@ customerList.forEach((customer) => {
           background: #5937c5;
         }
 
-        .primary-button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
         .secondary-button {
           background: #eeeaff;
           color: #6845d7;
+        }
+
+        .secondary-button:hover {
+          background: #e2dcff;
         }
 
         .summary-grid {
@@ -2684,17 +1932,20 @@ customerList.forEach((customer) => {
           gap: 10px;
         }
 
-        .customer-avatar {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+        .customer-avatar,
+        .large-avatar {
           background: #eee9ff;
           color: #6845d7;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
-          flex-shrink: 0;
+        }
+
+        .customer-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
         }
 
         .customer-name-cell strong {
@@ -2767,45 +2018,9 @@ customerList.forEach((customer) => {
           color: #d94f59;
         }
 
-        .table-tags,
-        .profile-tags {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 5px;
-        }
-
-        .table-tags {
-          max-width: 190px;
-        }
-
-        .mini-tag,
-        .profile-tag {
-          border: 0;
-          background: #f0ecff;
-          color: #6845d7;
-          border-radius: 15px;
-          padding: 5px 8px;
-          font-size: 10px;
-          cursor: pointer;
-        }
-
-        .profile-tag {
-          padding: 8px 12px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 11px;
-        }
-
-        .no-tags {
-          color: #aaa6b4;
-          font-size: 10px;
-        }
-
         .view-button,
         .unblock-button,
-        .block-button,
-        .assign-button {
+        .block-button {
           border: 0;
           border-radius: 7px;
           padding: 8px 10px;
@@ -2822,6 +2037,18 @@ customerList.forEach((customer) => {
           color: #6845d7;
         }
 
+        .delete-button {
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          font-size: 18px;
+        }
+
+        .delete-button:hover {
+          transform: scale(1.15);
+          opacity: 0.8;
+        }
+
         .unblock-button {
           background: #e8f8ef;
           color: #23975b;
@@ -2832,11 +2059,6 @@ customerList.forEach((customer) => {
           color: #d6535c;
         }
 
-        .assign-button {
-          background: #e9f3ff;
-          color: #4786c7;
-        }
-
         .empty-state {
           min-height: 220px;
           display: flex;
@@ -2845,7 +2067,6 @@ customerList.forEach((customer) => {
           justify-content: center;
           color: #9b97a8;
           text-align: center;
-          padding: 30px;
         }
 
         .empty-state svg {
@@ -2860,8 +2081,12 @@ customerList.forEach((customer) => {
         }
 
         .empty-state p {
-          margin: 0 0 18px;
+          margin: 0;
           font-size: 12px;
+        }
+
+        .profile-page {
+          max-width: 1200px;
         }
 
         .back-button {
@@ -2878,9 +2103,7 @@ customerList.forEach((customer) => {
           font-weight: 600;
         }
 
-        .profile-card,
-        .group-detail-card,
-        .manage-members-card {
+        .profile-card {
           background: white;
           border: 1px solid #ebe9f2;
           border-radius: 14px;
@@ -2899,13 +2122,7 @@ customerList.forEach((customer) => {
           width: 75px;
           height: 75px;
           border-radius: 18px;
-          background: #eee9ff;
-          color: #6845d7;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           font-size: 28px;
-          font-weight: 700;
         }
 
         .profile-main {
@@ -2963,30 +2180,237 @@ customerList.forEach((customer) => {
           font-size: 13px;
         }
 
-        .profile-section {
-          margin-top: 25px;
+        .group-details-page,
+        .manage-members-page {
+          max-width: 1200px;
         }
 
-        .section-title {
+        .group-detail-header,
+        .manage-members-header {
+          background: white;
+          border: 1px solid #ebe9f2;
+          border-radius: 13px;
+          padding: 22px;
           display: flex;
           align-items: center;
-          gap: 8px;
-          color: #6845d7;
+          gap: 15px;
+          margin-bottom: 20px;
         }
 
-        .section-title h3 {
-          color: #3c384d;
-          font-size: 15px;
+        .group-detail-icon {
+          width: 58px;
+          height: 58px;
+          border-radius: 14px;
+          background: #e8f3ff;
+          color: #4d8dce;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 23px;
+        }
+
+        .group-detail-heading {
+          flex: 1;
+        }
+
+        .group-detail-heading h2,
+        .manage-members-header h2 {
           margin: 0;
+          color: #302c42;
+          font-size: 22px;
         }
 
-        .profile-tags {
-          margin-top: 14px;
-        }
-
-        .no-tags-text {
-          color: #9691a2;
+        .group-detail-heading p,
+        .manage-members-header p {
+          margin: 6px 0 0;
+          color: #777287;
           font-size: 12px;
+        }
+
+        .group-detail-count,
+        .selected-member-count {
+          min-width: 110px;
+          background: #f3f0ff;
+          color: #6845d7;
+          border-radius: 11px;
+          padding: 11px 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          flex-wrap: wrap;
+          text-align: center;
+        }
+
+        .group-detail-count strong,
+        .selected-member-count strong {
+          font-size: 18px;
+        }
+
+        .group-detail-count span,
+        .selected-member-count span {
+          width: 100%;
+          font-size: 10px;
+          color: #817a99;
+        }
+
+        .group-detail-card,
+        .manage-members-card {
+          background: white;
+          border: 1px solid #ebe9f2;
+          border-radius: 13px;
+          padding: 22px;
+        }
+
+        .group-detail-section-header,
+        .manage-members-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 15px;
+          margin-bottom: 18px;
+        }
+
+        .group-detail-section-header h3,
+        .manage-members-top h3 {
+          margin: 0;
+          color: #3b374d;
+          font-size: 16px;
+        }
+
+        .group-detail-section-header p,
+        .manage-members-top p {
+          margin: 5px 0 0;
+          color: #9691a2;
+          font-size: 11px;
+        }
+
+        .group-member-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .group-member-row {
+          border: 1px solid #eeeef4;
+          border-radius: 10px;
+          padding: 13px;
+          display: grid;
+          grid-template-columns: 1.3fr 1.5fr 1fr auto auto;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .group-member-row:hover {
+          background: #fcfbff;
+        }
+
+        .group-member-contact {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          color: #777387;
+          font-size: 11px;
+        }
+
+        .group-member-contact span {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .group-empty {
+          border: 1px solid #eeeef4;
+          border-radius: 10px;
+        }
+
+        .manage-members-header > div:first-child {
+          flex: 1;
+        }
+
+        .manage-members-header span {
+          display: block;
+          margin-top: 5px;
+          color: #9a95a6;
+          font-size: 11px;
+        }
+
+        .member-selection-actions {
+          display: flex;
+          gap: 8px;
+        }
+
+        .member-checkbox-list {
+          display: flex;
+          flex-direction: column;
+          gap: 9px;
+        }
+
+        .member-checkbox-row {
+          border: 1px solid #e8e5ef;
+          border-radius: 10px;
+          padding: 12px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          background: #fcfbff;
+        }
+
+        .member-checkbox-row:hover {
+          border-color: #cfc5f7;
+          background: #f8f6ff;
+        }
+
+        .member-checkbox-row input {
+          width: 17px;
+          height: 17px;
+          accent-color: #6845d7;
+          cursor: pointer;
+        }
+
+        .member-checkbox-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .member-checkbox-info strong {
+          color: #39354b;
+          font-size: 13px;
+        }
+
+        .member-checkbox-info span {
+          color: #777287;
+          font-size: 11px;
+        }
+
+        .member-checkbox-info small {
+          color: #9b97a8;
+          font-size: 10px;
+        }
+
+        .member-checkbox-location {
+          min-width: 110px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          color: #777287;
+          font-size: 11px;
+        }
+
+        .member-checkbox-location svg {
+          color: #e48b91;
+        }
+
+        .manage-members-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 9px;
+          margin-top: 18px;
+          padding-top: 17px;
+          border-top: 1px solid #eeeef4;
         }
 
         .groups-grid {
@@ -3058,378 +2482,6 @@ customerList.forEach((customer) => {
           background: #fff0f1;
           color: #d95a63;
           margin-left: auto;
-        }
-
-        .group-details-page,
-        .manage-members-page {
-          max-width: 1200px;
-        }
-
-        .group-detail-header,
-        .manage-members-header {
-          background: white;
-          border: 1px solid #ebe9f2;
-          border-radius: 13px;
-          padding: 20px;
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          margin-bottom: 20px;
-        }
-
-        .group-detail-icon {
-          width: 58px;
-          height: 58px;
-          border-radius: 14px;
-          background: #e8f3ff;
-          color: #4d8dce;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 23px;
-        }
-
-        .group-detail-heading {
-          flex: 1;
-        }
-
-        .group-detail-heading h2,
-        .manage-members-header h2 {
-          margin: 0;
-          color: #302c42;
-          font-size: 22px;
-        }
-
-        .group-detail-heading p,
-        .manage-members-header p {
-          margin: 6px 0 0;
-          color: #918c9e;
-          font-size: 12px;
-        }
-
-        .group-detail-count,
-        .selected-member-count {
-          min-width: 100px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 3px;
-          padding: 12px 18px;
-          border-radius: 10px;
-          background: #f3f0ff;
-          color: #6845d7;
-        }
-
-        .group-detail-count strong,
-        .selected-member-count strong {
-          font-size: 20px;
-        }
-
-        .group-detail-count span,
-        .selected-member-count span {
-          font-size: 10px;
-        }
-
-        .group-detail-section-header,
-        .manage-members-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 15px;
-          margin-bottom: 18px;
-        }
-
-        .group-detail-section-header h3,
-        .manage-members-top h3 {
-          margin: 0;
-          color: #3c384d;
-          font-size: 16px;
-        }
-
-        .group-detail-section-header p,
-        .manage-members-top p {
-          margin: 5px 0 0;
-          color: #918c9e;
-          font-size: 11px;
-        }
-
-        .group-member-list {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .group-member-row {
-          display: grid;
-          grid-template-columns: 1.2fr 1.4fr 0.8fr auto auto;
-          align-items: center;
-          gap: 15px;
-          padding: 13px;
-          border: 1px solid #eeeaf5;
-          border-radius: 10px;
-          background: #fcfbff;
-        }
-
-        .group-member-contact {
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-          color: #777387;
-          font-size: 11px;
-        }
-
-        .group-member-contact span {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .group-member-contact svg {
-          color: #9d97ac;
-        }
-
-        .group-empty {
-          min-height: 250px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-        }
-
-        .group-empty > svg {
-          color: #c1b8e2;
-          font-size: 32px;
-          margin-bottom: 10px;
-        }
-
-        .group-empty h3 {
-          margin: 0 0 5px;
-          color: #474256;
-        }
-
-        .group-empty p {
-          color: #9691a2;
-          font-size: 12px;
-          margin: 0 0 17px;
-        }
-
-        .member-selection-actions {
-          display: flex;
-          gap: 8px;
-        }
-
-        .member-selection-actions button {
-          border: 0;
-          background: #eee9ff;
-          color: #6845d7;
-          border-radius: 7px;
-          padding: 8px 11px;
-          cursor: pointer;
-          font-size: 11px;
-          font-weight: 600;
-        }
-
-        .member-checkbox-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          max-height: 520px;
-          overflow-y: auto;
-        }
-
-        .member-checkbox-row {
-          display: grid;
-          grid-template-columns: 20px 38px 1.4fr 1fr 0.7fr auto;
-          align-items: center;
-          gap: 12px;
-          border: 1px solid #ebe8f2;
-          border-radius: 10px;
-          padding: 11px 13px;
-          background: #ffffff;
-          cursor: pointer;
-        }
-
-        .member-checkbox-row:hover {
-          background: #faf8ff;
-          border-color: #d9d0f4;
-        }
-
-        .member-checkbox-row input {
-          width: 16px;
-          height: 16px;
-          accent-color: #6845d7;
-          cursor: pointer;
-        }
-
-        .member-checkbox-info {
-          display: flex;
-          flex-direction: column;
-          gap: 3px;
-        }
-
-        .member-checkbox-info strong {
-          color: #383449;
-          font-size: 12px;
-        }
-
-        .member-checkbox-info span {
-          color: #8d889b;
-          font-size: 10px;
-        }
-
-        .member-checkbox-location {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          color: #777286;
-          font-size: 11px;
-        }
-
-        .member-checkbox-location svg {
-          color: #df8d94;
-        }
-
-        .manage-members-footer {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          margin-top: 18px;
-          padding-top: 18px;
-          border-top: 1px solid #eeeef4;
-        }
-
-        .cancel-button {
-          border: 1px solid #dedbe7;
-          background: white;
-          color: #686376;
-          border-radius: 8px;
-          padding: 10px 15px;
-          cursor: pointer;
-          font-size: 12px;
-        }
-
-        .tags-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 15px;
-        }
-
-        .tag-card {
-          position: relative;
-          background: white;
-          border: 1px solid #ebe9f2;
-          border-radius: 13px;
-          padding: 18px;
-          display: flex;
-          align-items: center;
-          gap: 13px;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-
-        .tag-card:hover {
-          border-color: #cfc5f7;
-          transform: translateY(-2px);
-        }
-
-        .tag-icon {
-          width: 45px;
-          height: 45px;
-          border-radius: 12px;
-          background: #eee9ff;
-          color: #6845d7;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .tag-card-content {
-          flex: 1;
-        }
-
-        .tag-card h3 {
-          margin: 0;
-          font-size: 14px;
-          color: #39354b;
-        }
-
-        .tag-card p {
-          margin: 5px 0 0;
-          color: #9691a2;
-          font-size: 11px;
-        }
-
-        .tag-delete {
-          border: 0;
-          background: #fff0f1;
-          color: #d95a63;
-          width: 30px;
-          height: 30px;
-          border-radius: 8px;
-          cursor: pointer;
-        }
-
-        .tag-info {
-          margin-top: 20px;
-          background: #f3f0ff;
-          border: 1px solid #e4ddff;
-          border-radius: 12px;
-          padding: 17px;
-          display: flex;
-          gap: 12px;
-          color: #6845d7;
-        }
-
-        .tag-info h3 {
-          margin: 0 0 5px;
-          color: #4a4269;
-          font-size: 14px;
-        }
-
-        .tag-info p {
-          margin: 0;
-          color: #77718c;
-          font-size: 12px;
-          line-height: 1.6;
-        }
-
-        .tag-detail-header {
-          background: white;
-          border: 1px solid #ebe9f2;
-          border-radius: 13px;
-          padding: 20px;
-          display: flex;
-          align-items: center;
-          gap: 15px;
-        }
-
-        .tag-detail-icon {
-          width: 55px;
-          height: 55px;
-          border-radius: 14px;
-          background: #eee9ff;
-          color: #6845d7;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 22px;
-        }
-
-        .tag-detail-header h2 {
-          margin: 0;
-          color: #302c42;
-          font-size: 22px;
-        }
-
-        .tag-detail-header p {
-          margin: 5px 0 0;
-          color: #918c9e;
-          font-size: 12px;
-        }
-
-        .tag-table-area {
-          margin-top: 20px;
         }
 
         .import-export-grid {
@@ -3579,10 +2631,6 @@ customerList.forEach((customer) => {
           box-shadow: 0 15px 45px rgba(38, 30, 67, 0.18);
         }
 
-        .small-modal {
-          max-width: 450px;
-        }
-
         .modal-header {
           display: flex;
           align-items: flex-start;
@@ -3622,8 +2670,7 @@ customerList.forEach((customer) => {
           margin-bottom: 15px;
         }
 
-        .form-group label,
-        .assign-tags-section > label {
+        .form-group label {
           display: block;
           margin-bottom: 7px;
           color: #555064;
@@ -3665,55 +2712,19 @@ customerList.forEach((customer) => {
           border-top: 1px solid #eeeef4;
         }
 
-        .assign-tags-section {
-          margin-top: 8px;
-        }
-
-        .checkbox-tags {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 9px;
-          margin-top: 10px;
-        }
-
-        .checkbox-tag {
-          border: 1px solid #e6e3ee;
-          border-radius: 9px;
-          padding: 10px;
-          display: flex;
-          align-items: center;
+        .cancel-button {
+          border: 1px solid #dedbe7;
+          background: white;
+          color: #686376;
+          border-radius: 8px;
+          padding: 10px 15px;
           cursor: pointer;
-          background: #faf9fd;
-        }
-
-        .checkbox-tag input {
-          margin-right: 8px;
-          accent-color: #6845d7;
-        }
-
-        .checkbox-tag span {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          color: #5e596d;
-          font-size: 11px;
+          font-size: 12px;
         }
 
         @media (max-width: 1200px) {
           .summary-grid {
             grid-template-columns: repeat(3, 1fr);
-          }
-
-          .tags-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .group-member-row {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .member-checkbox-row {
-            grid-template-columns: 20px 38px 1fr auto;
           }
         }
 
@@ -3733,11 +2744,6 @@ customerList.forEach((customer) => {
           .groups-grid,
           .import-export-grid {
             grid-template-columns: 1fr;
-          }
-
-          .group-detail-header,
-          .manage-members-header {
-            align-items: flex-start;
           }
         }
 
@@ -3763,10 +2769,8 @@ customerList.forEach((customer) => {
           }
 
           .summary-grid,
-          .tags-grid,
           .profile-details,
-          .form-grid,
-          .checkbox-tags {
+          .form-grid {
             grid-template-columns: 1fr;
           }
 
@@ -3785,29 +2789,6 @@ customerList.forEach((customer) => {
 
           .profile-actions {
             flex-wrap: wrap;
-          }
-
-          .group-detail-header,
-          .manage-members-header {
-            flex-direction: column;
-          }
-
-          .group-detail-count,
-          .selected-member-count {
-            width: 100%;
-          }
-
-          .group-member-row {
-            grid-template-columns: 1fr;
-          }
-
-          .member-checkbox-row {
-            grid-template-columns: 20px 38px 1fr;
-          }
-
-          .member-checkbox-location,
-          .member-checkbox-row .status-badge {
-            margin-left: 58px;
           }
 
           .blocked-card {

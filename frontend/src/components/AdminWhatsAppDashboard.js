@@ -1072,12 +1072,12 @@ const AdminWhatsAppDashboard = () => {
               <span>Messages</span>
             </button>
 
-            <button>
+            <button onClick={() => navigate('/admin/whatsapp/campaigns')}>
               <FaBullhorn />
               <span>Campaigns</span>
             </button>
 
-            <button>
+            <button onClick={() => navigate('/admin/whatsapp/templates')}>
               <FaFileAlt />
               <span>Templates</span>
             </button>
@@ -1087,12 +1087,12 @@ const AdminWhatsAppDashboard = () => {
               <span>Automation</span>
             </button>
 
-            <button>
+            <button onClick={() => navigate('/admin/whatsapp/reports')}>
               <FaChartLine />
               <span>Reports</span>
             </button>
 
-            <button>
+            <button onClick={() => navigate('/admin/whatsapp/settings')}>
               <FaCog />
               <span>Settings</span>
             </button>

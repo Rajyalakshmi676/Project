@@ -19,6 +19,8 @@ from dotenv import load_dotenv
 env_path = os.path.join(BASE_DIR, '.env')
 load_dotenv(env_path)
 
+WHATSAPP_ACCOUNT_NAME = os.getenv("WHATSAPP_ACCOUNT_NAME", "")
+WHATSAPP_ACCOUNT_ID = os.getenv("WHATSAPP_ACCOUNT_ID", "")
 
 def _env_bool(name, default=False):
     value = os.environ.get(name)
